@@ -24,14 +24,25 @@ pub fn solve(lines: &mut dyn Iterator<Item = String>) -> u32 {
 
 #[test]
 fn solve_should_return_24000_with_sample_data() {
-    let example = vec![
-        "1000", "2000", "3000", "",
-        "4000", "",
-        "5000", "6000", "",
-        "7000", "8000", "9000", "",
-        "10000"];
-    
-    let actual = solve(&mut crate::utils::strvec_to_iter(&example));
+    let example = indoc::indoc!("
+        1000
+        2000
+        3000
+
+        4000
+
+        5000
+        6000
+
+        7000
+        8000
+        9000
+
+        10000
+    ");
+    let mut lines = crate::utils::str_to_iter(example);
+
+    let actual = solve(&mut lines);
     
     assert_eq!(24000, actual);
 }
