@@ -1,4 +1,5 @@
 mod problem01;
+mod problem02;
 mod utils;
 
 use std::env::{args};
@@ -23,6 +24,9 @@ fn solve(problem_number: u32) {
     match problem_number {
         1 => {
             println!("{}", problem01::solve(&mut stdin_lines()));
+        },
+        2 => {
+            println!("{}", problem02::solve(&mut stdin_lines()));
         },
         _ => {
             println!("Not yet implemented");
