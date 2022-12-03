@@ -24,7 +24,7 @@ pub fn solve_a(lines: &mut dyn Iterator<Item = String>) -> u32 {
 
 #[test]
 fn solve_a_should_return_24000_with_sample_data() {
-    let example = indoc::indoc!("
+    let sample = indoc::indoc!("
         1000
         2000
         3000
@@ -38,9 +38,8 @@ fn solve_a_should_return_24000_with_sample_data() {
         8000
         9000
 
-        10000
-    ");
-    let mut lines = crate::utils::str_to_iter(example);
+        10000");
+    let mut lines = crate::utils::str_to_iter(sample);
 
     let actual = solve_a(&mut lines);
     
@@ -69,7 +68,7 @@ pub fn solve_b(lines: &mut dyn Iterator<Item = String>) -> u32 {
 
 #[test]
 fn solve_b_should_return_45000_with_sample_data() {
-    let example = indoc::indoc!("
+    let sample = indoc::indoc!("
         1000
         2000
         3000
@@ -83,9 +82,8 @@ fn solve_b_should_return_45000_with_sample_data() {
         8000
         9000
 
-        10000
-    ");
-    let mut lines = crate::utils::str_to_iter(example);
+        10000");
+    let mut lines = crate::utils::str_to_iter(sample);
 
     let actual = solve_b(&mut lines);
 

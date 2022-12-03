@@ -1,4 +1,5 @@
 mod problem01;
+mod problem02;
 mod utils;
 
 use std::env::{args};
@@ -6,13 +7,8 @@ use indoc::indoc;
 use crate::utils::{stdin_lines};
 
 fn main() {
-    let valid_problems = vec!["1a", "1b"];
-
     if let Some(problem) = args().nth(1) {
-        let problem = problem.as_str();
-        if valid_problems.contains(&problem) {
-            solve(problem);
-
+        if solve(problem.as_str()) {
             return;
         }
     }
@@ -20,7 +16,7 @@ fn main() {
     help();
 }
 
-fn solve(problem: &str) {
+fn solve(problem: &str) -> bool {
     match problem {
         "1a" => {
             println!("{}", problem01::solve_a(&mut stdin_lines()));
@@ -28,17 +24,25 @@ fn solve(problem: &str) {
         "1b" => {
             println!("{}", problem01::solve_b(&mut stdin_lines()));
         },
+        "2a" => {
+            println!("{}", problem02::solve_a(&mut stdin_lines()));
+        },
+        "2b" => {
+            println!("{}", problem02::solve_b(&mut stdin_lines()));
+        },
         _ => {
-            println!("Not yet implemented");
+            return false;
         }
     }
+
+    true
 }
 
 fn help() {
     println!(indoc!("
     Advent of Code 2022 (https://adventofcode.com)
     Run: adventofcode2022 problem
-        problem is one of 1a, 1b
+        problem is one of 1a, 1b, 2a, 2b
 
     The utility reads input from stdin and prints result to stdout.
     "));
