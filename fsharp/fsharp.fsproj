@@ -3,9 +3,12 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net7.0</TargetFramework>
+    <AssemblyName>adventofcode</AssemblyName>
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="Uitls.fs" />
+    <Compile Include="Problem01.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
 
