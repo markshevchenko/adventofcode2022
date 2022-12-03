@@ -1,8 +1,8 @@
 ﻿module Problem01Tests
 
 open Xunit
-open Problem01
 open Utils
+open Problem01
 
 
 [<Fact>]
