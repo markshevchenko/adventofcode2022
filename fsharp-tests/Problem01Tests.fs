@@ -24,7 +24,7 @@ let ``solve_a with sample data returns 24000`` () =
                   
     let actual = solve_a (sample |> String.to_reader |> Seq.from_reader) 
                   
-    Assert.Equal(24000u, actual) 
+    Assert.Equal(24000, actual) 
 
 [<Fact>]
 let ``solve_b with sample data returns 45000`` () =
@@ -45,4 +45,4 @@ let ``solve_b with sample data returns 45000`` () =
                   
     let actual = solve_b (sample |> String.to_reader |> Seq.from_reader) 
                   
-    Assert.Equal(45000u, actual)
+    Assert.Equal(45000, actual)

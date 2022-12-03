@@ -9,24 +9,16 @@ let priority c =
 
 
 let solve_a (lines: string seq) =
-    let mutable result = 0
-    for line in lines do
-        let left_half = Set.ofSeq line[..line.Length/2 - 1] 
-        let right_half = Set.ofSeq line[line.Length/2..]
-        let share_item = Set.intersect left_half right_half |> Seq.exactlyOne
-        
-        result <- result + priority share_item
-        
-    result
+    lines |> Seq.map (fun line -> (line[..line.Length/2 - 1], line[line.Length/2..]))
+          |> Seq.map (fun (left, right) -> (Set.ofSeq left, Set.ofSeq right))
+          |> Seq.map (fun (left, right) -> Set.intersect left right)
+          |> Seq.map Seq.exactlyOne
+          |> Seq.map priority
+          |> Seq.sum
 
 
 let solve_b (lines: string seq) =
-    let mutable result = 0
-    for triple in Seq.chunkBySize 3 lines do
-        let share_item = triple |> Seq.map Set.ofSeq
-                                |> Set.intersectMany
-                                |> Seq.exactlyOne
-        
-        result <- result + priority share_item
-        
-    result
+    lines |> Seq.chunkBySize 3
+          |> Seq.map (fun triple -> triple |> Seq.map Set.ofSeq |> Set.intersectMany |> Seq.exactlyOne)
+          |> Seq.map priority
+          |> Seq.sum
