@@ -68,7 +68,7 @@ pub fn solve_b(lines: &mut dyn Iterator<Item = String>) -> u32 {
 }
 
 #[test]
-fn solve_b_should_return_24000_with_sample_data() {
+fn solve_b_should_return_45000_with_sample_data() {
     let example = indoc::indoc!("
         1000
         2000
