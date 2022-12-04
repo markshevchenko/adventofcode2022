@@ -1,6 +1,7 @@
 mod problem01;
 mod problem02;
 mod problem03;
+mod problem04;
 mod utils;
 
 use std::env::{args};
@@ -36,6 +37,12 @@ fn solve(problem: &str) -> bool {
         },
         "3b" => {
             println!("{}", problem03::solve_b(&mut stdin_lines()));
+        },
+        "4a" => {
+            println!("{}", problem04::solve_a(&mut stdin_lines()));
+        },
+        "4b" => {
+            println!("{}", problem04::solve_b(&mut stdin_lines()));
         },
         _ => {
             return false;
