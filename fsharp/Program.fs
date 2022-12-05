@@ -11,6 +11,8 @@ match arg with
 | Some "3b" -> Console.In |> Seq.from_reader |> Problem03.solve_b |> printfn "%d"
 | Some "4a" -> Console.In |> Seq.from_reader |> Problem04.solve_a |> printfn "%d"
 | Some "4b" -> Console.In |> Seq.from_reader |> Problem04.solve_b |> printfn "%d"
+| Some "5a" -> Console.In |> Seq.from_reader |> Problem05.solve_a |> printfn "%s"
+| Some "5b" -> Console.In |> Seq.from_reader |> Problem05.solve_b |> printfn "%s"
 | _ -> printfn "Advent of Code 2022 (https://adventofcode.com)"
        printfn "Run: adventofcode2022 problem"
        printfn "     problem is one of 1a-4a, 1b-4b"

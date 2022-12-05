@@ -7,42 +7,42 @@ open Problem01
 
 [<Fact>]
 let ``solve_a with sample data returns 24000`` () =
-    let sample = "1000\n\
-                  2000\n\
-                  3000\n\
-                  \n\
-                  4000\n\
-                  \n\
-                  5000\n\
-                  6000\n\
-                  \n\
-                  7000\n\
-                  8000\n\
-                  9000\n\
-                  \n\
-                  10000"
+    let sample = [ "1000"
+                   "2000"
+                   "3000"
+                   ""
+                   "4000"
+                   ""
+                   "5000"
+                   "6000"
+                   ""
+                   "7000"
+                   "8000"
+                   "9000"
+                   ""
+                   "10000" ] |> Seq.ofList
                   
-    let actual = solve_a (sample |> String.to_reader |> Seq.from_reader) 
+    let actual = solve_a sample 
                   
     Assert.Equal(24000, actual) 
 
 [<Fact>]
 let ``solve_b with sample data returns 45000`` () =
-    let sample = "1000\n\
-                  2000\n\
-                  3000\n\
-                  \n\
-                  4000\n\
-                  \n\
-                  5000\n\
-                  6000\n\
-                  \n\
-                  7000\n\
-                  8000\n\
-                  9000\n\
-                  \n\
-                  10000"
+    let sample = [ "1000"
+                   "2000"
+                   "3000"
+                   ""
+                   "4000"
+                   ""
+                   "5000"
+                   "6000"
+                   ""
+                   "7000"
+                   "8000"
+                   "9000"
+                   ""
+                   "10000" ] |> Seq.ofList
                   
-    let actual = solve_b (sample |> String.to_reader |> Seq.from_reader) 
+    let actual = solve_b sample 
                   
     Assert.Equal(45000, actual)

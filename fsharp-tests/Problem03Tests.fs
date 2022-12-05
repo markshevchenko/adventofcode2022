@@ -15,27 +15,27 @@ let ``priority returns valid values`` () =
 
 [<Fact>]
 let ``solve_a with sample returns 157`` () =
-    let sample = "vJrwpWtwJgWrhcsFMMfFFhFp\n\
-                  jqHRNqRjqzjGDLGLrsFMfFZSrLrFZsSL\n\
-                  PmmdzqPrVvPwwTWBwg\n\
-                  wMqvLMZHhHMvwLHjbvcjnnSBnvTQFn\n\
-                  ttgJtRGJQctTZtZT\n\
-                  CrZsJsPPZsGzwwsLwLmpwMDw\n"
+    let sample = [ "vJrwpWtwJgWrhcsFMMfFFhFp"
+                   "jqHRNqRjqzjGDLGLrsFMfFZSrLrFZsSL"
+                   "PmmdzqPrVvPwwTWBwg"
+                   "wMqvLMZHhHMvwLHjbvcjnnSBnvTQFn"
+                   "ttgJtRGJQctTZtZT"
+                   "CrZsJsPPZsGzwwsLwLmpwMDw" ] |> Seq.ofList
     
-    let actual = solve_a (sample |> String.to_reader |> Seq.from_reader) 
+    let actual = solve_a sample 
                   
     Assert.Equal(157, actual)
     
     
 [<Fact>]
 let ``solve_b with sample returns 70`` () =
-    let sample = "vJrwpWtwJgWrhcsFMMfFFhFp\n\
-                  jqHRNqRjqzjGDLGLrsFMfFZSrLrFZsSL\n\
-                  PmmdzqPrVvPwwTWBwg\n\
-                  wMqvLMZHhHMvwLHjbvcjnnSBnvTQFn\n\
-                  ttgJtRGJQctTZtZT\n\
-                  CrZsJsPPZsGzwwsLwLmpwMDw\n"
+    let sample = [ "vJrwpWtwJgWrhcsFMMfFFhFp"
+                   "jqHRNqRjqzjGDLGLrsFMfFZSrLrFZsSL"
+                   "PmmdzqPrVvPwwTWBwg"
+                   "wMqvLMZHhHMvwLHjbvcjnnSBnvTQFn"
+                   "ttgJtRGJQctTZtZT"
+                   "CrZsJsPPZsGzwwsLwLmpwMDw" ] |> Seq.ofList
     
-    let actual = solve_b (sample |> String.to_reader |> Seq.from_reader) 
+    let actual = solve_b sample 
                   
     Assert.Equal(70, actual)
