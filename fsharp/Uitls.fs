@@ -22,7 +22,3 @@ module Seq =
                  |> Seq.groupBy fst
                  |> Seq.map snd
                  |> Seq.map (Seq.map snd)
-                 
-module String =
-    let to_reader s =
-        new StringReader (s)
