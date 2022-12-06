@@ -18,7 +18,7 @@ fn detect_packet_position(chars: &[u8]) -> usize {
 }
 
 #[test]
-fn detect_packet_position_should_return_valid_maker_position() {
+fn detect_packet_position_should_return_valid_values() {
     assert_eq!(7, detect_packet_position(b"mjqjpqmgbljsphdztnvjfqwrcgsmlb"));
     assert_eq!(5, detect_packet_position(b"bvwbjplbgvbhsrlpgdmjqwftvncz"));
     assert_eq!(6, detect_packet_position(b"nppdvjthqldpwncqszvftbrmjlhg"));
@@ -56,7 +56,7 @@ fn detect_message_position(chars: &[u8]) -> usize {
 }
 
 #[test]
-fn detect_message_position_should_return_valid_maker_position() {
+fn detect_message_position_should_return_valid_values() {
     assert_eq!(19, detect_message_position(b"mjqjpqmgbljsphdztnvjfqwrcgsmlb"));
     assert_eq!(23, detect_message_position(b"bvwbjplbgvbhsrlpgdmjqwftvncz"));
     assert_eq!(23, detect_message_position(b"nppdvjthqldpwncqszvftbrmjlhg"));
