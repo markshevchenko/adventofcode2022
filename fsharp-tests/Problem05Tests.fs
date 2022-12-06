@@ -1,7 +1,6 @@
 ﻿module Problem05Tests
 
 open Xunit
-open Utils
 open Problem05
 
 
