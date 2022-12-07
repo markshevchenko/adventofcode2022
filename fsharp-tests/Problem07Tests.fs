@@ -26,20 +26,18 @@ let sample = [
     "4060174 j"
     "8033020 d.log"
     "5626152 d.ext"
-    "7214296 k" ]|> Seq.ofList
+    "7214296 k" ]
 
 
 [<Fact>]
 let ``solve_a with sample returns 95437`` () =
-    
     let actual = solve_a sample
                   
-    Assert.Equal(95_437UL, actual)
+    Assert.Equal (95_437UL, actual)
     
     
 [<Fact>]
 let ``solve_b with sample returns 24933642`` () =
-    
     let actual = solve_b sample 
                   
-    Assert.Equal(24_933_642UL, actual)
+    Assert.Equal (24_933_642UL, actual)

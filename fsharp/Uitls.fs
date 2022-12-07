@@ -1,7 +1,6 @@
 ﻿module Utils
 
 open System.IO
-open System.Runtime.CompilerServices
 
 module Seq =
     let from_reader (text_reader: TextReader) = seq {

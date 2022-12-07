@@ -1,6 +1,5 @@
 ﻿module Problem04
 
-
 let (|Split|_|) (c: char) (s: string) =
     match s.Split c with
     | [|a; b|] -> Some (a, b)

@@ -1,7 +1,6 @@
 ﻿module Problem03Tests
 
 open Xunit
-open Utils
 open Problem03
 
 
@@ -13,29 +12,24 @@ let ``priority returns valid values`` () =
     Assert.Equal (52, priority 'Z')
 
 
+let sample = [|
+    "vJrwpWtwJgWrhcsFMMfFFhFp"
+    "jqHRNqRjqzjGDLGLrsFMfFZSrLrFZsSL"
+    "PmmdzqPrVvPwwTWBwg"
+    "wMqvLMZHhHMvwLHjbvcjnnSBnvTQFn"
+    "ttgJtRGJQctTZtZT"
+    "CrZsJsPPZsGzwwsLwLmpwMDw" |]
+
+
 [<Fact>]
 let ``solve_a with sample returns 157`` () =
-    let sample = [ "vJrwpWtwJgWrhcsFMMfFFhFp"
-                   "jqHRNqRjqzjGDLGLrsFMfFZSrLrFZsSL"
-                   "PmmdzqPrVvPwwTWBwg"
-                   "wMqvLMZHhHMvwLHjbvcjnnSBnvTQFn"
-                   "ttgJtRGJQctTZtZT"
-                   "CrZsJsPPZsGzwwsLwLmpwMDw" ] |> Seq.ofList
-    
     let actual = solve_a sample 
                   
-    Assert.Equal(157, actual)
+    Assert.Equal (157, actual)
     
     
 [<Fact>]
 let ``solve_b with sample returns 70`` () =
-    let sample = [ "vJrwpWtwJgWrhcsFMMfFFhFp"
-                   "jqHRNqRjqzjGDLGLrsFMfFZSrLrFZsSL"
-                   "PmmdzqPrVvPwwTWBwg"
-                   "wMqvLMZHhHMvwLHjbvcjnnSBnvTQFn"
-                   "ttgJtRGJQctTZtZT"
-                   "CrZsJsPPZsGzwwsLwLmpwMDw" ] |> Seq.ofList
-    
     let actual = solve_b sample 
                   
-    Assert.Equal(70, actual)
+    Assert.Equal (70, actual)
