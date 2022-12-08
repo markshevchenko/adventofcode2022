@@ -59,6 +59,12 @@ fn solve(problem: &str) -> bool {
         "6b" => {
             println!("{}", problem06::solve_b(&mut stdin_lines()));
         },
+        "7a" => {
+            println!("{}", problem07::solve_a(&mut stdin_lines()));
+        },
+        "7b" => {
+            println!("{}", problem07::solve_b(&mut stdin_lines()));
+        },
         _ => {
             return false;
         }
