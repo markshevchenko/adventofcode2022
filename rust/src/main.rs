@@ -75,10 +75,9 @@ fn solve(problem: &str) -> bool {
 
 fn help() {
     println!(indoc!("
-    Advent of Code 2022 (https://adventofcode.com)
-    Run: adventofcode2022 problem
-        problem is one of 1a-6a, 1b-6b
-
-    The utility reads input from stdin and prints result to stdout.
-    "));
+        Advent of Code 2022 (https://adventofcode.com)
+        Run: adventofcode2022 problem
+            problem is one of 1a-7a, 1b-7b
+    
+        The utility reads input from stdin and prints result to stdout."));
 }
