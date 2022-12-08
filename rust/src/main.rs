@@ -5,6 +5,7 @@ mod problem04;
 mod problem05;
 mod problem06;
 mod problem07;
+mod problem08;
 mod utils;
 
 use std::env::{args};
@@ -65,6 +66,12 @@ fn solve(problem: &str) -> bool {
         "7b" => {
             println!("{}", problem07::solve_b(&mut stdin_lines()));
         },
+        "8a" => {
+            println!("{}", problem08::solve_a(&mut stdin_lines()));
+        },
+        "8b" => {
+            println!("{}", problem08::solve_b(&mut stdin_lines()));
+        },
         _ => {
             return false;
         }
@@ -77,7 +84,7 @@ fn help() {
     println!(indoc!("
         Advent of Code 2022 (https://adventofcode.com)
         Run: adventofcode2022 problem
-            problem is one of 1a-7a, 1b-7b
+            problem is one of 1a-8a, 1b-8b
     
         The utility reads input from stdin and prints result to stdout."));
 }
