@@ -41,15 +41,15 @@ let parse (line: string) =
 
 
 let solve_a (lines: string seq) =
-    let mutable head = { row = 0; column = 0 }
-    let mutable tail = { row = 0; column = 0 }
-    let mutable tails = Set<_> (seq { yield tail })
+    let mutable rope = Array.replicate 2 { row = 0; column = 0 }
+    let mutable tails = Set<_> (seq { yield Array.last rope })
     for line in lines do
         let (direction, n) = parse line
         for _ in 1..n do
-            head <- move direction head
-            tail <- move_tail head tail
-            tails <- tails.Add tail
+            rope[0] <- move direction rope[0]
+            for i in 1..rope.Length - 1 do
+                rope[i] <- move_tail rope[i - 1] rope[i]
+            tails <- tails.Add (Array.last rope)
             
     tails.Count
 
