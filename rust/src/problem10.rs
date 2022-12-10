@@ -216,7 +216,6 @@ pub fn solve_b(lines: &mut dyn Iterator<Item=String>) -> String {
     let mut crt = vec![vec![' '; 40]; 6];
     let mut row = 0;
     let mut column = 0;
-    let mut cycle = 1;
     let mut x: isize = 1;
     for line in lines {
         let op = parse(&line);
@@ -228,7 +227,6 @@ pub fn solve_b(lines: &mut dyn Iterator<Item=String>) -> String {
                 crt[row][column] = '.';
             }
 
-            cycle += 1;
             column += 1;
             if column == 40 {
                 column = 0;
