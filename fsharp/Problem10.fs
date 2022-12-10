@@ -15,47 +15,43 @@ let parse line =
     else if line.StartsWith "addx" then AddX (line.Substring 5 |> int)
     else failwith "Unrecognized operation"
 
+
 let solve_a (lines: string seq) =
-    let mutable cycle = 1
-    let mutable x = 1
-    let mutable accumulator = 0
-    for line in lines do
-        let op = parse line
-        
-        for _ in 1..cycles op do
-            if (cycle - 20) % 40 = 0 then
-                accumulator <- accumulator + cycle * x
-                
-            cycle <- cycle + 1
-            
-        match op with
-        | Noop -> ()
-        | AddX addendum -> x <- x + addendum
-    
-    accumulator
+    lines |> Seq.map parse
+          |> Seq.collect (function
+                          | Noop -> seq { Noop }
+                          | AddX n -> seq { Noop; AddX n })
+          |> Seq.mapi (fun i op -> (i + 1, op))
+          |> Seq.scan (fun (x, accumulator) (cycle, op) ->
+                       match op, (cycle - 20) % 40 = 0 with
+                       | Noop, false -> (x, accumulator)
+                       | Noop, true -> (x, accumulator + cycle * x)
+                       | AddX addendum, false ->(x + addendum, accumulator)
+                       | AddX addendum, true ->(x + addendum, accumulator + cycle * x))
+                      (1, 0)
+          |> Seq.last
+          |> snd
     
     
 let solve_b (lines: string seq) =
-    let mutable crt = Array.init 6 (fun _ -> Array.replicate 40 ' ')
-    let mutable row = 0
-    let mutable column = 0
-    let mutable x = 1
-    for line in lines do
-        let op = parse line
-        
-        for _ in 1..cycles op do
-            if column >= x - 1 && column <= x + 1
-            then crt[row][column] <- '#'
-            else crt[row][column] <- '.'
-            
-            column <- column + 1
-            if column = 40 then
-                column <- 0
-                row <- row + 1
-            
-        match op with
-        | Noop -> ()
-        | AddX addendum -> x <- x + addendum
-    
-    crt |> Seq.map String.Concat
-        |> String.concat "\n"
+    lines |> Seq.map parse
+          |> Seq.collect (function
+                          | Noop -> seq { Noop }
+                          | AddX n -> seq { Noop; AddX n })
+          |> Seq.scan (fun (column, x) op ->
+                       match op with
+                       | Noop -> if column = 39
+                                 then (0, x)
+                                 else (column + 1, x)
+                       | AddX addendum -> if column = 39
+                                          then (0, x + addendum)
+                                          else (column + 1, x + addendum))
+                      (0, 1)
+          |> Seq.map (fun (column, x) ->
+                          if column >= x - 1 && column <= x + 1
+                          then '#'
+                          else '.')
+          |> Seq.chunkBySize 40
+          |> Seq.map String.Concat
+          |> Seq.filter (fun line -> line.Length = 40)
+          |> String.concat "\n" 
