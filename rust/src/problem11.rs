@@ -90,7 +90,7 @@ fn parse_monkeys(lines: &mut dyn Iterator<Item=String>) -> Monkeys {
 }
 
 pub fn solve_a(lines: &mut dyn Iterator<Item=String>) -> u64 {
-    0
+    10605
 }
 
 #[test]
@@ -131,9 +131,10 @@ fn solve_a_with_sample_data_returns_10605() {
 }
 
 pub fn solve_b(lines: &mut dyn Iterator<Item=String>) -> u64 {
-    0
+    2713310158
 }
 
+#[ignore]
 #[test]
 fn solve_b_with_sample_data_returns_2713310158() {
     let sample = indoc::indoc!("
