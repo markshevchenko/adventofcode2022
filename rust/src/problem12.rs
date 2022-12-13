@@ -32,9 +32,7 @@ impl Ord for Node {
 
 impl PartialOrd for Node {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        self.priority
-            .partial_cmp(&other.priority)
-            .map(|ordering| ordering.reverse())
+        self.priority.partial_cmp(&other.priority).map(|cmp| cmp.reverse())
     }
 }
 
@@ -67,7 +65,7 @@ impl Field {
         Field { height, width, cells, start, end }
     }
 
-    fn is_suitable(&self, vertex: &Vertex, direction: Direction) -> bool {
+    fn is_suitable1(&self, vertex: &Vertex, direction: Direction) -> bool {
         let next = match direction {
             Direction::Up => if vertex.row == 0 { None }
                              else { Some(Vertex::new(vertex.row - 1, vertex.column)) },
@@ -89,32 +87,32 @@ impl Field {
         }
     }
 
-    fn neighbors(&self, coord: Vertex) -> Vec<Vertex> {
+    fn neighbors1(&self, coord: Vertex) -> Vec<Vertex> {
         let mut result = Vec::new();
-        if self.is_suitable(&coord, Direction::Up) {
+        if self.is_suitable1(&coord, Direction::Up) {
             result.push(Vertex::new(coord.row - 1, coord.column));
         }
 
-        if self.is_suitable(&coord, Direction::Down) {
+        if self.is_suitable1(&coord, Direction::Down) {
             result.push(Vertex::new(coord.row + 1, coord.column));
         }
 
-        if self.is_suitable(&coord, Direction::Left) {
+        if self.is_suitable1(&coord, Direction::Left) {
             result.push(Vertex::new(coord.row, coord.column - 1));
         }
 
-        if self.is_suitable(&coord, Direction::Right) {
+        if self.is_suitable1(&coord, Direction::Right) {
             result.push(Vertex::new(coord.row, coord.column + 1));
         }
 
         result
     }
 
-    fn find_path_from_start_to_end(&self) -> usize {
-        self.find_path(self.start, self.end)
+    fn find_path(&self) -> usize {
+        self.a_star1(self.start, self.end)
     }
 
-    fn find_path(&self, from: Vertex, to: Vertex) -> usize {
+    fn a_star1(&self, from: Vertex, to: Vertex) -> usize {
         let mut costs = HashMap::<Vertex, usize>::new();
         let mut heap = BinaryHeap::new();
 
@@ -122,7 +120,6 @@ impl Field {
         heap.push(Node { priority: to.distance(&from), cost: 0, vertex: from });
 
         while let Some(Node { priority: _, cost, vertex: current }) = heap.pop() {
-            println!("{}: {}, {}", cost, current.row, current.column);
             if current == to {
                 return cost;
             }
@@ -131,13 +128,89 @@ impl Field {
                 continue;
             }
 
-            for next in self.neighbors(current) {
+            for next in self.neighbors1(current) {
                 let next_cost = cost + 1;
                 if !costs.contains_key(&next) || next_cost < costs[&next] {
                     costs.insert(next, next_cost);
 
                     let priority = next_cost + to.distance(&next);
                     heap.push(Node { priority, cost: next_cost, vertex: next});
+                }
+            }
+        }
+
+        panic!("Path has not found")
+    }
+    
+    fn find_nearest_a(&self) -> usize {
+        self.a_star2(self.end)
+    }
+
+    fn is_suitable2(&self, vertex: &Vertex, direction: Direction) -> bool {
+        let next = match direction {
+            Direction::Up => if vertex.row == 0 { None }
+            else { Some(Vertex::new(vertex.row - 1, vertex.column)) },
+            Direction::Down => if vertex.row == self.height - 1 { None }
+            else { Some(Vertex::new(vertex.row + 1, vertex.column)) },
+            Direction::Left => if vertex.column == 0 { None }
+            else { Some(Vertex::new(vertex.row, vertex.column - 1)) },
+            Direction::Right => if vertex.column == self.width - 1 { None }
+            else { Some(Vertex::new(vertex.row, vertex.column + 1)) },
+        };
+
+        if let Some(next) = next {
+            let current_value = self.cells[vertex.row][vertex.column];
+            let next_value = self.cells[next.row][next.column];
+
+            next_value >= current_value || next_value == current_value - 1
+        } else {
+            false
+        }
+    }
+
+    fn neighbors2(&self, coord: Vertex) -> Vec<Vertex> {
+        let mut result = Vec::new();
+        if self.is_suitable2(&coord, Direction::Up) {
+            result.push(Vertex::new(coord.row - 1, coord.column));
+        }
+
+        if self.is_suitable2(&coord, Direction::Down) {
+            result.push(Vertex::new(coord.row + 1, coord.column));
+        }
+
+        if self.is_suitable2(&coord, Direction::Left) {
+            result.push(Vertex::new(coord.row, coord.column - 1));
+        }
+
+        if self.is_suitable2(&coord, Direction::Right) {
+            result.push(Vertex::new(coord.row, coord.column + 1));
+        }
+
+        result
+    }
+
+    fn a_star2(&self, from: Vertex) -> usize {
+        let mut costs = HashMap::<Vertex, usize>::new();
+        let mut heap = BinaryHeap::new();
+
+        costs.insert(from, 0usize);
+        heap.push(Node { priority: 0, cost: 0, vertex: from });
+
+        while let Some(Node { priority: _, cost, vertex: current }) = heap.pop() {
+            if self.cells[current.row][current.column] == b'a' {
+                return cost;
+            }
+
+            if cost > costs[&current] {
+                continue;
+            }
+
+            for next in self.neighbors2(current) {
+                let next_cost = cost + 1;
+                if !costs.contains_key(&next) || next_cost < costs[&next] {
+                    costs.insert(next, next_cost);
+
+                    heap.push(Node { priority: next_cost, cost: next_cost, vertex: next});
                 }
             }
         }
@@ -177,7 +250,7 @@ fn detect_start_end(cells: &Vec<Vec<u8>>) -> (Vertex, Vertex) {
 pub fn solve_a(lines: &mut dyn Iterator<Item=String>) -> usize {
     let field = Field::load(lines);
 
-    field.find_path_from_start_to_end()
+    field.find_path()
 }
 
 #[test]
@@ -196,7 +269,9 @@ fn solve_a_with_sample_data_returns_31() {
 }
 
 pub fn solve_b(lines: &mut dyn Iterator<Item=String>) -> usize {
-    0
+    let field = Field::load(lines);
+
+    field.find_nearest_a()
 }
 
 #[test]

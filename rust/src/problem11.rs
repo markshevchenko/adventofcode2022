@@ -203,7 +203,6 @@ pub fn solve_b(lines: &mut dyn Iterator<Item=String>) -> usize {
         .product()
 }
 
-#[ignore]
 #[test]
 fn solve_b_with_sample_data_returns_2713310158() {
     let sample = indoc::indoc!("
@@ -236,7 +235,7 @@ fn solve_b_with_sample_data_returns_2713310158() {
             If false: throw to monkey 1");
     let mut lines = crate::utils::str_to_iter(sample);
 
-    let actual = solve_a(&mut lines);
+    let actual = solve_b(&mut lines);
 
     assert_eq!(2_713_310_158_usize, actual);
 }
