@@ -1,5 +1,7 @@
-use std::str::FromStr;
+use std::collections::vec_deque::VecDeque;
 use std::fmt::Debug;
+use std::str::FromStr;
+use num::integer::lcm;
 
 enum Operation {
     Add(u64),
@@ -29,7 +31,7 @@ fn parse_operation(s: &str) -> Operation {
     }
 }
 
-fn parse_items(s: &str) -> Vec<u64> {
+fn parse_items(s: &str) -> VecDeque<u64> {
     if let Some(value) = s.strip_prefix("  Starting items: ") {
         value.split(", ").map(|s| s.parse::<u64>().unwrap()).collect()
     } else {
@@ -46,51 +48,109 @@ fn parse_number<N>(s: &str, prefix: &str) -> N where N: FromStr, <N as FromStr>:
 }
 
 struct Monkey {
-    items: Vec<u64>,
+    items: VecDeque<u64>,
     operation: Operation,
     divisible_by: u64,
     if_true: usize,
     if_false: usize,
+    total_inspects: usize,
 }
 
-fn parse_monkey(lines: &mut dyn Iterator<Item=String>) -> Monkey {
-    debug_assert!(lines.next().unwrap().starts_with("Monkey"));
-    let items = parse_items(&lines.next().unwrap());
-    let operation = parse_operation(&lines.next().unwrap());
-    let divisible_by = parse_number::<u64>(&lines.next().unwrap(), "  Test: divisible by ");
-    let if_true = parse_number::<usize>(&lines.next().unwrap(), "    If true: throw to monkey ");
-    let if_false = parse_number::<usize>(&lines.next().unwrap(), "    If false: throw to monkey ");
-    
-    Monkey { items, operation, divisible_by, if_true, if_false }
+impl Monkey {
+    fn load(lines: &mut dyn Iterator<Item=String>) -> Self {
+        debug_assert!(lines.next().unwrap().starts_with("Monkey"));
+        let items = parse_items(&lines.next().unwrap());
+        let operation = parse_operation(&lines.next().unwrap());
+        let divisible_by = parse_number::<u64>(&lines.next().unwrap(), "  Test: divisible by ");
+        let if_true = parse_number::<usize>(&lines.next().unwrap(), "    If true: throw to monkey ");
+        let if_false = parse_number::<usize>(&lines.next().unwrap(), "    If false: throw to monkey ");
+        let total_inspects = 0;
+
+        Monkey { items, operation, divisible_by, if_true, if_false, total_inspects }
+    }
+
+    fn inspect<F>(&mut self, relax: F) -> Vec<(usize, u64)>  where F: Fn(u64) -> u64 {
+        let mut result = Vec::new();
+        self.total_inspects += self.items.len();
+        while self.items.len() > 0 {
+            let item = self.items.pop_front().unwrap();
+            let worry_level = relax(self.operation.apply(item));
+            let whom =
+                if worry_level % self.divisible_by == 0 { self.if_true }
+                else { self.if_false};
+
+            result.push((whom, worry_level));
+        }
+
+        result
+    }
 }
 
 struct Monkeys {
-    monkeys: Vec<Monkey>
+    monkeys: Vec<Monkey>,
+    common_lcm: u64
 }
 
 impl Monkeys {
-    fn new(monkeys: Vec<Monkey>) -> Self {
-        Monkeys { monkeys }
+    fn load(lines: &mut dyn Iterator<Item=String>) -> Monkeys {
+        let mut monkeys = vec![];
+
+        loop {
+            let monkey = Monkey::load(lines);
+            monkeys.push(monkey);
+
+            if lines.next() == None {
+                break;
+            }
+        }
+
+        let mut common_lcm = 1;
+        for monkey in monkeys.iter() {
+            common_lcm = lcm(common_lcm, monkey.divisible_by);
+        }
+
+        Monkeys { monkeys, common_lcm }
+    }
+
+    fn round1(&mut self) {
+        let len = self.monkeys.len();
+        for i in 0..len {
+            let inspects = (&mut self.monkeys[i]).inspect(|a| a / 3u64);
+
+            for (whom, worry_level) in inspects.iter() {
+                (&mut self.monkeys[*whom]).items.push_back(*worry_level);
+            }
+        }
+    }
+
+    fn round2(&mut self) {
+        let len = self.monkeys.len();
+        let common_lcm = self.common_lcm;
+        for i in 0..len {
+            let inspects = (&mut self.monkeys[i]).inspect(|a| a % common_lcm);
+
+            for (whom, worry_level) in inspects.iter() {
+                (&mut self.monkeys[*whom]).items.push_back(*worry_level);
+            }
+        }
+    }
+
+    fn get_total_inspects(&self) -> Vec<usize> {
+        self.monkeys.iter().map(|monkey| monkey.total_inspects).collect()
     }
 }
 
-fn parse_monkeys(lines: &mut dyn Iterator<Item=String>) -> Monkeys {
-    let mut monkeys = vec![];
-    
-    loop {
-        let monkey = parse_monkey(lines);
-        monkeys.push(monkey);
-        
-        if lines.next() == None {
-            break;
-        } 
+pub fn solve_a(lines: &mut dyn Iterator<Item=String>) -> usize {
+    let mut monkeys = Monkeys::load(lines);
+    for _ in 0..20 {
+        monkeys.round1();
     }
-    
-    Monkeys { monkeys }
-}
 
-pub fn solve_a(lines: &mut dyn Iterator<Item=String>) -> u64 {
-    10605
+    let mut inspects = monkeys.get_total_inspects();
+    inspects.sort_by(|a, b| b.cmp(a));
+    inspects.iter()
+        .take(2)
+        .product()
 }
 
 #[test]
@@ -127,11 +187,20 @@ fn solve_a_with_sample_data_returns_10605() {
 
     let actual = solve_a(&mut lines);
 
-    assert_eq!(10_605_u64, actual);
+    assert_eq!(10_605, actual);
 }
 
-pub fn solve_b(lines: &mut dyn Iterator<Item=String>) -> u64 {
-    2713310158
+pub fn solve_b(lines: &mut dyn Iterator<Item=String>) -> usize {
+    let mut monkeys = Monkeys::load(lines);
+    for _ in 0..10000 {
+        monkeys.round2();
+    }
+
+    let mut inspects = monkeys.get_total_inspects();
+    inspects.sort_by(|a, b| b.cmp(a));
+    inspects.iter()
+        .take(2)
+        .product()
 }
 
 #[ignore]
@@ -169,5 +238,5 @@ fn solve_b_with_sample_data_returns_2713310158() {
 
     let actual = solve_a(&mut lines);
 
-    assert_eq!(2_713_310_158_u64, actual);
+    assert_eq!(2_713_310_158_usize, actual);
 }
