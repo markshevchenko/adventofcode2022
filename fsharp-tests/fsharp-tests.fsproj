@@ -21,10 +21,12 @@
         <Compile Include="Problem09Tests.fs" />
         <Compile Include="Problem10Tests.fs" />
         <Compile Include="Problem11Tests.fs" />
+        <Compile Include="Problem13Tests.fs" />
         <Compile Include="Program.fs" />
     </ItemGroup>
 
     <ItemGroup>
+        <PackageReference Include="FParsec" Version="2.0.0-beta2" />
         <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.1.0" />
         <PackageReference Include="xunit" Version="2.4.1" />
         <PackageReference Include="xunit.runner.visualstudio" Version="2.4.3">

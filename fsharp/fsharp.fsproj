@@ -19,7 +19,12 @@
     <Compile Include="Problem09.fs" />
     <Compile Include="Problem10.fs" />
     <Compile Include="Problem11.fs" />
+    <Compile Include="Problem13.fs" />
     <Compile Include="Program.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="FParsec" Version="2.0.0-beta2" />
   </ItemGroup>
 
 </Project>
