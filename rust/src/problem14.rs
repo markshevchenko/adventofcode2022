@@ -1,5 +1,5 @@
 use std::iter;
-use std::ops::Sub;
+use std::ops::{Add, Sub};
 use std::str;
 use text_io::scan;
 
@@ -22,13 +22,21 @@ impl Point {
     }
 }
 
+impl Add for Point {
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        Self { x: self.x + rhs.x, y: self.y + rhs.y }
+    }
+}
+
 impl Sub for Point {
     type Output = Self;
 
     fn sub(self, rhs: Self) -> Self::Output {
         Self { x: self.x - rhs.x, y: self.y - rhs.y }
     }
-} 
+}
 
 #[test]
 fn point_parse_parses_498_4() {
@@ -83,27 +91,26 @@ impl Field {
         (min, max)
     }
 
-    fn from_chains(chains: &Vec<Vec<Point>>) -> Self {
-        let (min, max) = Field::detect_limits(chains);
+    fn make_points(min: Point, max: Point) -> Vec<Vec<u8>> {
         let width = max.x - min.x + 1;
         let height = max.y - min.y + 1;
-        let source = Point::new(500, 0) - min;
-        let mut points: Vec<Vec<u8>> =
-            iter::repeat(iter::repeat(b'.').take(width).collect())
-                .take(height).collect();
-        
+        iter::repeat(iter::repeat(b'.').take(width).collect())
+            .take(height).collect()
+    }
+
+    fn draw_chains(points: &mut Vec<Vec<u8>>, chains: &Vec<Vec<Point>>, min: Point) {
         for chain in chains {
             for i in 1..chain.len() {
                 let from = chain[i - 1] - min;
                 let to = chain[i] - min;
-                
+
                 if from.x == to.x {
                     let range =
                         if from.y < to.y { from.y..=to.y }
                         else { to.y..=from.y };
-                    
+
                     for y in range {
-                            points[y][from.x] = b'#';
+                        points[y][from.x] = b'#';
                     }
                 }
                 else if from.y == to.y {
@@ -120,7 +127,34 @@ impl Field {
                 }
             }
         }
-        
+    }
+
+    fn draw_floor(points: &mut Vec<Vec<u8>>) {
+        let floor_row = points.len() - 1;
+        for i in 0..points[floor_row].len() {
+            points[floor_row][i] = b'#';
+        }
+    }
+
+    fn from_chains(chains: &Vec<Vec<Point>>) -> Self {
+        let (min, max) = Field::detect_limits(chains);
+        let source = Point::new(500, 0) - min;
+        let mut points = Field::make_points(min, max);
+        Field::draw_chains(&mut points, chains, min);
+
+        Field { points, source }
+    }
+
+    fn from_chains2(chains: &Vec<Vec<Point>>) -> Self {
+        let (mut min, mut max) = Field::detect_limits(chains);
+        let height = max.y - min.y + 1;
+        min = min - Point::new(height, 0);
+        max = max + Point::new(height, 2);
+        let source = Point::new(500, 0) - min;
+        let mut points = Field::make_points(min, max);
+        Field::draw_chains(&mut points, chains, min);
+        Field::draw_floor(&mut points);
+
         Field { points, source }
     }
     
@@ -129,6 +163,10 @@ impl Field {
         
         loop {
             if sand.y + 1 == self.points.len() {
+                return false;
+            }
+
+            if self.points[sand.y][sand.x] != b'.' {
                 return false;
             }
             
@@ -150,6 +188,7 @@ impl Field {
         }
     }
     
+    #[allow(dead_code)]
     fn print(&self) {
         for row in &self.points {
             println!("{}", str::from_utf8(&row).unwrap());
@@ -182,11 +221,19 @@ fn solve_a_with_sample_data_returns_24() {
 }
 
 pub fn solve_b(lines: &mut dyn Iterator<Item=String>) -> usize {
-    0
+    let chains = lines.map(|s| parse_chain(&s)).collect::<Vec<_>>();
+    let mut field = Field::from_chains2(&chains);
+    let mut count = 0;
+
+    while field.try_pass() {
+        count += 1
+    }
+
+    count
 }
 
 #[test]
-fn solve_b_with_sample_data_returns_0() {
+fn solve_b_with_sample_data_returns_93() {
     let sample = indoc::indoc!("
         498,4 -> 498,6 -> 496,6
         503,4 -> 502,4 -> 502,9 -> 494,9");
@@ -194,5 +241,5 @@ fn solve_b_with_sample_data_returns_0() {
 
     let actual = solve_b(&mut lines);
 
-    assert_eq!(0, actual);
+    assert_eq!(93, actual);
 }
