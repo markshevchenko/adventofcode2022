@@ -1,70 +1,70 @@
-use std::collections::{HashSet};
+use std::collections::{HashSet, HashMap};
 use std::hash::{Hash, Hasher};
 use lazy_static::lazy_static;
 use regex::Regex;
 
-#[derive(Eq)]
-struct Valve {
-    #[allow(dead_code)]
-    name: String,
-    #[allow(dead_code)]
-    rate: u32,
-    #[allow(dead_code)]
-    leads: Vec<String>,
-}
-
-impl PartialEq<Self> for Valve {
-    fn eq(&self, other: &Self) -> bool {
-        self.name.eq(&other.name)
-    }
-}
-
-impl Hash for Valve {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.name.hash(state);
-    }
-}
-
-impl Valve {
-    fn parse(s: &str) -> Self {
-        lazy_static! {
-            static ref REGEX: Regex = Regex::new(r"^Valve (\w\w) has flow rate=(\d+); tunnels? leads? to valves? (.*)$").unwrap();
-        }
-        
-        let captures = REGEX.captures(s).unwrap();
-        let name = captures[1].to_string();
-        let rate = captures[2].parse::<u32>().unwrap();
-        let leads = captures[3].split(", ").map(|s| s.to_string()).collect::<Vec<String>>();
-        
-        Valve { name, rate, leads }
-    }
-}
-
 struct Graph {
-    #[allow(dead_code)]
-    start: String,
-    #[allow(dead_code)]
-    valves: HashSet<Valve>
+    rates: Vec<u32>,
+    leads: Vec<Vec<usize>>,
 }
 
 impl Graph {
-    fn parse(lines: &mut dyn Iterator<Item=String>) -> Self {
-        let mut valves = HashSet::new();
-        let mut start = "".to_string();
-        for line in lines {
-            let valve = Valve::parse(&line);
-            if start == "" {
-                start = valve.name.clone();
-            }
-            valves.insert(valve);
+    fn parse_line(line: &String) -> (String, u32, Vec<String>) {
+        lazy_static! {
+            static ref REGEX: Regex = Regex::new(r"^Valve (\w\w) has flow rate=(\d+); tunnels? leads? to valves? (.*)$").unwrap();
         }
 
-        Graph { start, valves }
+        let captures = REGEX.captures(s).unwrap();
+        let name = captures[1].to_string();
+        let rate = captures[2].parse::<u32>().unwrap();
+        let names = captures[3].split(", ").map(|s| s.to_string()).collect::<Vec<String>>();
+
+        (name, rate, names)
+    }
+    
+    fn parse(lines: &mut dyn Iterator<Item=String>) -> Self {
+        let mut indexes = HashMap::new();
+        let mut rates = Vec::new();
+        let mut leads = Vec::new();
+        
+        for line in lines {
+            (name, rate, names) = Graph::parse_line(&line);
+            let index = if indexes.contains_key(&name) {
+                indexes[&name]
+            } else {
+                let index = indexes.len();
+                indexes.insert(&name, index);
+
+                index
+            };
+            
+            let mut lead_indexes = Vec::new();
+            
+            for name in names {
+                let index = if indexes.contains_key(&name) {
+                    indexes[&name]
+                } else {
+                    let index = indexes.len();
+                    indexes.insert(&name, index);
+
+                    index
+                };
+                
+                lead_indexes.push(index);
+            }
+
+            rates.push(rate);
+            leads.push(lead_indexes);
+        }
+
+        Graph { rates, leads }
     }
 }
 
 pub fn solve_a(lines: &mut dyn Iterator<Item=String>) -> usize {
-    let _graph = Graph::parse(lines);
+    let graph = Graph::parse(lines);
+    
+    
     0
 }
 
