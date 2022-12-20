@@ -92,15 +92,21 @@ let solve_b (max_xy: int) (lines: string seq) =
     let min_y = rhombuses |> Array.map (Rhombus.min_max_y >> fst) |> Array.min
     let max_y = rhombuses |> Array.map (Rhombus.min_max_y >> snd) |> Array.max
 
-    for y in (max min_y 0)..(min max_y max_xy) do
+    let mutable y = (max min_y 0)
+    let mutable x = None
+    while x.IsNone && y <= (min max_y max_xy) do
         let intervals = rhombuses |> Seq.map (Rhombus.scan y)
                                   |> Seq.choose id
                                   |> Interval.join
-                                  |> List.rev
                                   |> List.pairwise
-                                  |> List.filter (fun (a, b) -> a.finish = b.start - 2)
+                                  |> List.filter (fun (b, a) -> a.finish = b.start - 2)
+                                  |> List.tryExactlyOne
                                   
-        for pair in intervals do
-            printfn "%d-%d, %d-%d" (fst pair).start (fst pair).finish (snd pair).start (snd pair).finish
-        
-    0L
+        match intervals with
+        | Some ({ start = result; finish = _ }, _) -> x <- Some (result - 1)
+        | None -> y <- y + 1
+
+    match x with
+    | Some x -> (int64 x * 4000000L) + int64 y
+    | _ -> failwith "No result"
+    
