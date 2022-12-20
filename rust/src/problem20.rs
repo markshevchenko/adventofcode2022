@@ -43,12 +43,12 @@ fn source_target_should_process_positive_zero_and_negative_offsets() {
 fn round(pairs: &mut [(isize, usize)]) {
     for index in 0..pairs.len() {
         let (source, target) = source_target(&pairs, index);
-        if (source == target) {
+        if source == target {
             continue;
         }
 
         let item = pairs[source];
-        if (source < target) {
+        if source < target {
             for i in source..target {
                 pairs[i] = pairs[i + 1];
             }
