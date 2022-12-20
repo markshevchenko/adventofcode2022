@@ -14,7 +14,7 @@ impl Graph {
             static ref REGEX: Regex = Regex::new(r"^Valve (\w\w) has flow rate=(\d+); tunnels? leads? to valves? (.*)$").unwrap();
         }
 
-        let captures = REGEX.captures(s).unwrap();
+        let captures = REGEX.captures(line).unwrap();
         let name = captures[1].to_string();
         let rate = captures[2].parse::<u32>().unwrap();
         let names = captures[3].split(", ").map(|s| s.to_string()).collect::<Vec<String>>();
@@ -23,39 +23,39 @@ impl Graph {
     }
     
     fn parse(lines: &mut dyn Iterator<Item=String>) -> Self {
-        let mut indexes = HashMap::new();
+        // let mut indexes = HashMap::new();
         let mut rates = Vec::new();
         let mut leads = Vec::new();
         
-        for line in lines {
-            (name, rate, names) = Graph::parse_line(&line);
-            let index = if indexes.contains_key(&name) {
-                indexes[&name]
-            } else {
-                let index = indexes.len();
-                indexes.insert(&name, index);
-
-                index
-            };
-            
-            let mut lead_indexes = Vec::new();
-            
-            for name in names {
-                let index = if indexes.contains_key(&name) {
-                    indexes[&name]
-                } else {
-                    let index = indexes.len();
-                    indexes.insert(&name, index);
-
-                    index
-                };
-                
-                lead_indexes.push(index);
-            }
-
-            rates.push(rate);
-            leads.push(lead_indexes);
-        }
+        // for line in lines {
+        //     let (name, rate, names) = Graph::parse_line(&line);
+        //     let index = if indexes.contains_key(&name) {
+        //         indexes[&name]
+        //     } else {
+        //         let index = indexes.len();
+        //         indexes.insert(&name, index);
+        //
+        //         index
+        //     };
+        //
+        //     let mut lead_indexes = Vec::new();
+        //
+        //     for name in names {
+        //         let index = if indexes.contains_key(&name) {
+        //             indexes[&name]
+        //         } else {
+        //             let index = indexes.len();
+        //             indexes.insert(&name, index);
+        //
+        //             index
+        //         };
+        //
+        //         lead_indexes.push(index);
+        //     }
+        //
+        //     rates.push(rate);
+        //     leads.push(lead_indexes);
+        // }
 
         Graph { rates, leads }
     }

@@ -13,6 +13,7 @@ mod problem12;
 mod problem14;
 mod problem16;
 mod problem18;
+mod problem20;
 mod utils;
 
 use std::env::{args};
@@ -120,6 +121,12 @@ fn solve(problem: &str) -> bool {
         },
         "18b" => {
             println!("{}", problem18::solve_b(&mut stdin_lines()));
+        },
+        "20a" => {
+            println!("{}", problem20::solve_a(&mut stdin_lines()));
+        },
+        "20b" => {
+            println!("{}", problem20::solve_b(&mut stdin_lines()));
         },
         _ => {
             return false;
