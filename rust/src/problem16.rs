@@ -1,22 +1,23 @@
-use std::collections::{HashMap};
+use std::cmp::Ordering;
+use std::collections::{BinaryHeap, HashMap, VecDeque};
 use lazy_static::lazy_static;
 use regex::Regex;
 
 #[derive(Clone)]
 struct Valve {
-    rate: u32,
+    rate: i32,
     tunnels: Vec<usize>,
-    distances: HashMap<usize, usize>,
+    distances: HashMap<usize, i32>,
 }
 
-fn parse_line(line: String) -> (String, u32, Vec<String>) {
+fn parse_line(line: String) -> (String, i32, Vec<String>) {
     lazy_static! {
         static ref REGEX: Regex = Regex::new(r"^Valve (\w\w) has flow rate=(\d+); tunnels? leads? to valves? (.*)$").unwrap();
     }
 
     let captures = REGEX.captures(&line).unwrap();
     let name = captures[1].to_string();
-    let rate = captures[2].parse::<u32>().unwrap();
+    let rate = captures[2].parse::<i32>().unwrap();
     let names = captures[3].split(", ").map(|s| s.to_string()).collect::<Vec<String>>();
 
     (name, rate, names)
@@ -52,7 +53,7 @@ fn parse_valves(lines: &mut dyn Iterator<Item=String>) -> Vec<Valve> {
     result
 }
 
-fn build_distance_matrix(valves: &[Valve], index: usize, distance: usize, columns: &[usize], row: &mut HashMap<usize, usize>) {
+fn build_distance_matrix(valves: &[Valve], index: usize, distance: i32, columns: &[usize], row: &mut HashMap<usize, i32>) {
     let mut next_columns = Vec::new();
     for column in columns {
         if *column == index {
@@ -77,23 +78,140 @@ fn build_distance_matrix(valves: &[Valve], index: usize, distance: usize, column
     build_distance_matrix(valves, index, distance + 1, &next_columns, row);
 }
 
-pub fn solve_a(lines: &mut dyn Iterator<Item=String>) -> usize {
-    let valves = parse_valves(lines);
-
-    for i in 0..valves.len() {
-        print!("Index {}, Rate {},", i, valves[i].rate);
-
-        for distance in valves[i].distances.iter() {
-            print!("[{}, {}]", distance.0, distance.1);
-        }
-
-        println!("");
-    }
-
-    0
+#[derive(Copy, Clone, Eq, Ord)]
+struct State {
+    priority: i32,
+    total_pressure: i32,
+    current_pressure: i32,
+    minute: i32,
+    opened: u128,
+    visited: u128,
+    index: usize,
 }
 
-#[ignore]
+impl PartialEq for State {
+    fn eq(&self, other: &Self) -> bool {
+        self.priority.eq(&other.priority)
+    }
+}
+
+impl PartialOrd for State {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        self.priority.partial_cmp(&other.priority)
+    }
+}
+
+impl State {
+    fn new() -> Self {
+        State {
+            priority: 0,
+            total_pressure: 0,
+            current_pressure: 0,
+            minute: 0,
+            opened: 0,
+            visited: 0,
+            index: 0,
+        }
+    }
+
+    fn open(&self, rate: i32) -> Self {
+        State {
+            priority: 0,
+            total_pressure: self.total_pressure + self.current_pressure,
+            current_pressure: self.current_pressure + rate,
+            minute: self.minute + 1,
+            opened: self.opened | (1 << self.index),
+            visited: 1 << self.index,
+            ..*self
+        }
+    }
+
+    fn visit(&self, rate: i32, index: usize) -> Self {
+        State {
+            priority: 0,
+            total_pressure: self.total_pressure + self.current_pressure,
+            minute: self.minute + 1,
+            visited: self.visited | (1 << index),
+            index,
+            ..*self
+        }
+    }
+
+    fn is_opened(&self, index: usize) -> bool {
+        self.opened & (1 << index) != 0
+    }
+
+    fn is_visited(&self, index: usize) -> bool {
+        self.visited & (1 << index) != 0
+    }
+}
+
+fn a_star(valves: &[Valve]) -> i32 {
+    if valves.len() > 128 {
+        panic!("Too many valves.");
+    }
+
+    // let mut priority_queue = BinaryHeap::new();
+    let mut queue = VecDeque::new();
+    // priority_queue.push(State::new());
+    queue.push_back(State::new());
+
+    let mut max_total_pressure = 0;
+
+    // while let Some(state) = priority_queue.pop() {
+    while let Some(state) = queue.pop_front() {
+        if state.minute == 30 {
+            if max_total_pressure < state.total_pressure {
+                max_total_pressure = state.total_pressure;
+            }
+
+            continue;
+        }
+
+        let current_index = state.index;
+        let current_valve = &valves[current_index];
+        if current_valve.rate > 0 && !state.is_opened(current_index) {
+            let next_state = state.open(current_valve.rate);
+            // priority_queue.push(next_state);
+            queue.push_back(next_state);
+            // println!("Open {} (rate {}): priority {}, minute {}, total: {}, current: {}",
+            //          current_index,
+            //          current_valve.rate,
+            //          next_state.priority,
+            //          next_state.minute,
+            //          next_state.total_pressure,
+            //          next_state.current_pressure);
+        }
+
+        for &next_index in current_valve.tunnels.iter() {
+            if state.is_visited(next_index) {
+                continue;
+            }
+
+            let next_valve = &valves[next_index];
+            let next_state = state.visit(next_valve.rate, next_index);
+            // priority_queue.push(next_state);
+            queue.push_back(next_state);
+            // println!("Visit {} -> {} (rate {}): priority: {}, minute {}, total: {}, current: {}",
+            //          current_index,
+            //          next_index,
+            //          next_valve.rate,
+            //          next_state.priority,
+            //          next_state.minute,
+            //          next_state.total_pressure,
+            //          next_state.current_pressure);
+        }
+    }
+
+    max_total_pressure
+}
+
+pub fn solve_a(lines: &mut dyn Iterator<Item=String>) -> i32 {
+    let valves = parse_valves(lines);
+
+    a_star(&valves)
+}
+
 #[test]
 fn solve_a_with_sample_data_returns_1651() {
     let sample = indoc::indoc!("
