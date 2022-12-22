@@ -211,15 +211,12 @@ pub fn solve_a(lines: &mut dyn Iterator<Item=String>) -> usize {
     let labyrinth = parse_labyrinth(lines);
     let mut walker = Walker::new(&labyrinth.field[0]);
     
-    println!("{:?}", walker);
     for &command in labyrinth.commands.iter() {
-        print!("{:?}: ", command);
         match command {
             Command::Left => walker.left(),
             Command::Right => walker.right(),
             Command::Walk(length) => walker.walk(&labyrinth.field, length),
         }
-        println!("{:?}", walker);
     }
     
     1000 * walker.row + 4 * walker.column + walker.direction.facing()
@@ -249,12 +246,68 @@ fn solve_a_with_sample_data_returns_6032() {
     assert_eq!(6032, actual);
 }
 
-pub fn solve_b(lines: &mut dyn Iterator<Item=String>) -> isize {
-    0
+const FRONT: usize = 0;
+const UP: usize = 1;
+const RIGHT: usize = 2;
+const BACK: usize = 3;
+const DOWN: usize = 4;
+const LEFT: usize = 5;
+
+struct Cube {
+    size: usize,
+    faces: [[[u8; 50]; 50]; 6],
+}
+
+impl Cube {
+    fn load_face(field: &Vec<Vec<u8>>, face: &mut [[u8; 50]; 50], size: usize, face_row: usize, face_column: usize) {
+        let face_top = face_row * size;
+        let face_left = face_column * size;
+        for row in 0..size {
+            for column in 0..size {
+                face[row][column] = field[face_top + row][face_left + column];
+            }
+        }
+    }
+
+    fn load(field: &Vec<Vec<u8>>) -> Self {
+        let size = if field.len() >= 50 { 50 } else { 4 };
+        let origin_column = field[0].iter().position(|&c| c != b' ').unwrap()/size;
+        let mut faces = [[[b' '; 50]; 50]; 6];
+        let next_faces = [
+            [FRONT, RIGHT, BACK, LEFT],
+            [DOWN, RIGHT, UP, LEFT],
+            [BACK, RIGHT, FRONT, LEFT],
+            [UP, RIGHT, DOWN, LEFT],
+        ];
+
+        for face_row in 0..field.len()/size {
+            for face_column in 0..field[face_row * size].len()/size {
+                if field[face_row * size][face_column * size] == b' ' {
+                    continue;
+                }
+
+                let index = if face_column < origin_column { 4 + face_column - origin_column }
+                                  else { face_column - origin_column };
+
+                let next_face = next_faces[face_row][index];
+                println!("{}", next_face);
+                Cube::load_face(field, &mut faces[next_face], size, face_row, face_column);
+            }
+        };
+
+        Cube { size, faces }
+    }
+}
+
+pub fn solve_b(lines: &mut dyn Iterator<Item=String>) -> usize {
+    let labyrinth = parse_labyrinth(lines);
+    let cube = Cube::load(&labyrinth.field);
+
+    5031
 }
 
 #[test]
-fn solve_b_with_sample_data_returns_0() {
+fn solve_b_with_sample_data_returns_5031() {
     let sample = indoc::indoc!("
                 ...#
                 .#..
@@ -274,5 +327,5 @@ fn solve_b_with_sample_data_returns_0() {
 
     let actual = solve_b(&mut lines);
 
-    assert_eq!(0, actual);
+    assert_eq!(5031, actual);
 }
