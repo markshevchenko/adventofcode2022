@@ -1,5 +1,6 @@
 use std::cmp::Ordering;
-use std::collections::{BinaryHeap, HashMap, VecDeque};
+// use std::collections::BinaryHeap;
+use std::collections::{HashMap, VecDeque};
 use lazy_static::lazy_static;
 use regex::Regex;
 
@@ -126,7 +127,7 @@ impl State {
         }
     }
 
-    fn visit(&self, rate: i32, index: usize) -> Self {
+    fn visit(&self, _rate: i32, index: usize) -> Self {
         State {
             priority: 0,
             total_pressure: self.total_pressure + self.current_pressure,
