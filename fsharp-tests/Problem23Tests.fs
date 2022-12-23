@@ -21,7 +21,7 @@ let ``solve_a with sample returns 110`` () =
     
     
 [<Fact>]
-let ``solve_b with sample returns 0`` () =
+let ``solve_b with sample returns 20`` () =
     let actual = solve_b sample 
                   
-    Assert.Equal (0, actual)
+    Assert.Equal (20, actual)

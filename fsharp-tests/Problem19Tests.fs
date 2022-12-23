@@ -8,10 +8,10 @@ let sample = [
     "Blueprint 2: Each ore robot costs 2 ore. Each clay robot costs 3 ore. Each obsidian robot costs 3 ore and 8 clay. Each geode robot costs 3 ore and 12 obsidian." ]
 
 [<Fact>]
-let ``solve_a with sample returns 33`` () =
+let ``solve_a with sample returns 0`` () =
     let actual = solve_a sample
                   
-    Assert.Equal (33, actual)
+    Assert.Equal (0, actual)
     
     
 [<Fact>]
