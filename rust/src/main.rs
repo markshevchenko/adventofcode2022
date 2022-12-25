@@ -15,6 +15,7 @@ mod problem16;
 mod problem18;
 mod problem20;
 mod problem22;
+mod problem24;
 mod utils;
 
 use std::env::{args};
@@ -135,6 +136,12 @@ fn solve(problem: &str) -> bool {
         "22b" => {
             println!("{}", problem22::solve_b(&mut stdin_lines()));
         },
+        "24a" => {
+            println!("{}", problem24::solve_a(&mut stdin_lines()));
+        },
+        "24b" => {
+            println!("{}", problem24::solve_b(&mut stdin_lines()));
+        },
         _ => {
             return false;
         }
@@ -147,7 +154,8 @@ fn help() {
     println!(indoc!("
         Advent of Code 2022 (https://adventofcode.com)
         Run: adventofcode2022 problem
-            problem is one of 1a-12a,14a,16a,18a,20a,22a; 1b-12b,14b,16b,18b,20b,22b
+            problem is one of 1a-12a,14a,16a,18a,20a,22a,24a
+                              1b-12b,14b,16b,18b,20b,22b,24b
     
         The utility reads input from stdin and prints result to stdout."));
 }

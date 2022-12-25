@@ -1,331 +1,387 @@
-#[derive(Copy, Clone, Eq, PartialEq, Debug)]
-enum Command {
-    Left,
-    Right,
-    Walk(u32),
-}
+use std::collections::{HashSet};
+use std::hash::{Hash, Hasher};
 
-struct Labyrinth {
-    field: Vec<Vec<u8>>,
-    commands: Vec<Command>,
-}
-
-fn parse_field(lines: &mut dyn Iterator<Item=String>) -> Vec<Vec<u8>> {
-    let mut field = Vec::new();
-    while let Some(line) = lines.next() {
-        if line == "" {
-            break;
-        }
-
-        let row = line.bytes().collect::<Vec<_>>();
-        field.push(row);
-    }
-    
-    field
-}
-
-fn parse_commands(lines: &mut dyn Iterator<Item=String>) -> Vec<Command> {
-    let mut commands = Vec::new();
-    if let Some(line) = lines.next() {
-        let mut number = 0;
-        for c in line.bytes() {
-            match c {
-                b'L' => {
-                    if number > 0 {
-                        commands.push(Command::Walk(number));
-                    }
-
-                    commands.push(Command::Left);
-                    number = 0;
-                },
-                b'R' => {
-                    if number > 0 {
-                        commands.push(Command::Walk(number));
-                    }
-
-                    commands.push(Command::Right);
-                    number = 0;
-                },
-                b'0'..=b'9' => number = 10 * number + (c - b'0') as u32,
-                _ => panic!("Unknown command character."),
-            }
-        }
-
-        if number > 0 {
-            commands.push(Command::Walk(number));
-        }
-    }
-    
-    commands
-}
-
-#[test]
-fn parse_commands_parses_sample() {
-    let mut lines = crate::utils::str_to_iter("10R5L5R10L4R5L5");
-    let actual = parse_commands(&mut lines);
-    let expected = vec![Command::Walk(10), Command::Right, Command::Walk(5),
-    Command::Left, Command::Walk(5), Command::Right, Command::Walk(10), Command::Left,
-    Command::Walk(4), Command::Right, Command::Walk(5), Command::Left, Command::Walk(5)]; 
-    
-    assert_eq!(expected, actual);
-}
-
-fn parse_labyrinth(lines: &mut dyn Iterator<Item=String>) -> Labyrinth {
-    let field = parse_field(lines);
-    let commands = parse_commands(lines);
-    
-    Labyrinth { field, commands }
-}
-
-#[derive(Copy, Clone, Eq, PartialEq, Debug)]
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
 enum Direction {
-    Right,
-    Down,
-    Left,
-    Up,
+    Fore,
+    Back
 }
 
-impl Direction {
-    fn facing(&self) -> usize {
-        match self {
-            Direction::Right => 0,
-            Direction::Down => 1,
-            Direction::Left => 2,
-            Direction::Up => 3,
-        }
-    }
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+struct Blizzard {
+    position: usize,
+    direction: Direction,
 }
 
-#[derive(Copy, Clone, Eq, PartialEq, Debug)]
-struct Walker {
-    row: usize,
-    column: usize,
-    direction: Direction
-}
-
-impl Walker {
-    fn new(top_row: &[u8]) -> Self {
-        let column = top_row.iter().position(|&c| c != b' ').unwrap() + 1;
-        
-        Walker {
-            row: 1,
-            column,
-            direction: Direction::Right,
-        }
-    }
-
-    fn left(&mut self) {
-        self.direction = match self.direction {
-            Direction::Right => Direction::Up,
-            Direction::Up => Direction::Left,
-            Direction::Left => Direction::Down,
-            Direction::Down => Direction::Right,
-        }
-    }
-
-    fn right(&mut self) {
-        self.direction = match self.direction {
-            Direction::Right => Direction::Down,
-            Direction::Down => Direction::Left,
-            Direction::Left => Direction::Up,
-            Direction::Up => Direction::Right,
-        }
+impl Blizzard {
+    fn new(position: usize, direction: Direction) -> Self {
+        Blizzard { position, direction }
     }
     
-    fn next(&self, field: &Vec<Vec<u8>>) -> (usize, usize) {
-        let mut next_row = self.row;
-        let mut next_column = self.column;
-        
-        match self.direction {
-            Direction::Right => {
-                if next_column == field[self.row - 1].len() {
-                    while next_column > 1 && field[self.row - 1][next_column - 2] != b' ' {
-                        next_column -= 1;
-                    }
-                } else {
-                    next_column += 1;
-                }
-            },
-            Direction::Down => {
-                if next_row == field.len() || self.column > field[next_row].len() 
-                    || field[next_row][self.column - 1] == b' ' {
-                    while next_row > 1 && field[next_row - 2].len() >= self.column
-                        && field[next_row - 2][self.column - 1] != b' ' {
-                        next_row -= 1;
-                    }
-                } else {
-                    next_row += 1;
-                }
-            },
-            Direction::Left => {
-                if next_column == 1 {
-                    while next_column < field[self.row - 1].len() && field[self.row - 1][next_column] != b' ' {
-                        next_column += 1;
-                    }
-                } else {
-                    next_column -= 1;
-                }
-            },
-            Direction::Up => {
-                if next_row == 1 || self.column > field[next_row - 2].len()
-                    || field[next_row - 2][self.column - 1] == b' ' {
-                    while next_row < field.len() && field[next_row].len() >= self.column
-                        && field[next_row][self.column - 1] != b' ' {
-                        next_row += 1;
-                    }
-                } else {
-                    next_row -= 1;
-                }
-            },
-        };
-
-        (next_row, next_column)
-    }
-    
-    fn walk(&mut self, field: &Vec<Vec<u8>>, mut length: u32) {
-        loop {
-            if length == 0 {
-                break;
-            }
-
-            let (next_row, next_column) = self.next(field);
-            if field[next_row - 1][next_column - 1] == b'#' {
-                break;
-            }
-            
-            self.row = next_row;
-            self.column = next_column;
-            length -= 1;
+    fn shift(&self, offset: usize, size: usize) -> usize {
+        if self.direction == Direction::Fore {
+            (self.position + offset) % size
+        } else if self.position >= offset {
+            self.position - offset
+        } else {
+            size - 1 - ((offset - self.position - 1) % size)
         }
     }
 }
 
 #[test]
-fn walker_new_sets_column_9_on_sample_data() {
-    let actual = Walker::new(b"        ...#");
+fn test_blizzard_next_position() {
+    let fore = Blizzard::new(3, Direction::Fore);
+    let back = Blizzard::new(3, Direction::Back);
+
+    assert_eq!(3, fore.shift(0, 5));
+    assert_eq!(3, back.shift(0, 5));
     
-    assert_eq!(Walker { row: 1, column: 9, direction: Direction::Right }, actual);
+    assert_eq!(4, fore.shift(1, 5));
+    assert_eq!(2, back.shift(1, 5));
+    
+    assert_eq!(0, fore.shift(2, 5));
+    assert_eq!(1, back.shift(2, 5));
+    
+    assert_eq!(1, fore.shift(3, 5));
+    assert_eq!(0, back.shift(3, 5));
+    
+    assert_eq!(2, fore.shift(4, 5));
+    assert_eq!(4, back.shift(4, 5));
+    
+    assert_eq!(3, fore.shift(5, 5));
+    assert_eq!(3, back.shift(5, 5));
+    
+    assert_eq!(4, fore.shift(6, 5));
+    assert_eq!(2, back.shift(6, 5));
+
+    assert_eq!(0, fore.shift(7, 5));
+    assert_eq!(1, back.shift(7, 5));
+
+    assert_eq!(1, fore.shift(8, 5));
+    assert_eq!(0, back.shift(8, 5));
+
+    assert_eq!(2, fore.shift(9, 5));
+    assert_eq!(4, back.shift(9, 5));
+
+    assert_eq!(3, fore.shift(10, 5));
+    assert_eq!(3, back.shift(10, 5));
+
+    assert_eq!(4, fore.shift(11, 5));
+    assert_eq!(2, back.shift(11, 5));
+}
+
+struct Map {
+    width: usize,
+    height: usize,
+    blizzards_by_x: Vec<Vec<Blizzard>>,
+    blizzards_by_y: Vec<Vec<Blizzard>>,
+    start_x: usize,
+    start_y: usize,
+    end_x: usize,
+    end_y: usize,
+}
+
+impl Map {
+    fn load(lines: &mut dyn Iterator<Item=String>) -> Self {
+        let chars = lines.map(|line| line.bytes().collect::<Vec<_>>())
+            .collect::<Vec<_>>();
+
+        let width = chars[0].len() - 2;
+        let height = chars.len() - 2;
+
+        let mut blizzards_by_x = Vec::new();
+        for _ in 0..width {
+            blizzards_by_x.push(Vec::new());
+        }
+
+        let mut blizzards_by_y = Vec::new();
+        for _ in 0..height {
+            blizzards_by_y.push(Vec::new());
+        }
+        
+        for y in 0..height {
+            for x in 0..width {
+                match chars[y + 1][x + 1] {
+                    b'>' => blizzards_by_y[y].push(Blizzard::new(x, Direction::Fore)),
+                    b'v' => blizzards_by_x[x].push(Blizzard::new(y, Direction::Fore)),
+                    b'<' => blizzards_by_y[y].push(Blizzard::new(x, Direction::Back)),
+                    b'^' => blizzards_by_x[x].push(Blizzard::new(y, Direction::Back)),
+                    _ => (),
+                }
+            }
+        }
+
+        let start_x = chars[0].iter().position(|&b| b == b'.').unwrap() - 1;
+        let start_y = usize::MAX;
+        let end_x = chars[chars.len() - 1].iter().position(|&b| b == b'.').unwrap() - 1;
+        let end_y = height;
+        
+        Map { width, height, blizzards_by_x, blizzards_by_y, start_x, start_y, end_x, end_y }
+    }
+    
+    fn out_of_blizzards(&self, frame: &Frame) -> bool {
+        if frame.y == usize::MAX || frame.y == self.height {
+            return true;
+        }
+        
+        for blizzard in &self.blizzards_by_y[frame.y] {
+            if blizzard.shift(frame.minute, self.width) == frame.x {
+                return false;
+            }
+        }
+
+        for blizzard in &self.blizzards_by_x[frame.x] {
+            if blizzard.shift(frame.minute, self.height) == frame.y {
+                return false;
+            }
+        }
+        
+        true
+    }
+}
+
+#[test]
+fn test_map_load_with_sample() {
+    let sample = indoc::indoc!("
+        #.#####
+        #.....#
+        #>....#
+        #.....#
+        #...v.#
+        #.....#
+        #####.#");
+    let mut lines = crate::utils::str_to_iter(sample);
+    let map = Map::load(&mut lines);
+    
+    assert_eq!(5, map.width);
+    assert_eq!(5, map.height);
+    assert_eq!(0, map.start_x);
+    assert_eq!(4, map.end_x);
+    assert_eq!(vec![Blizzard { position: 3, direction: Direction::Fore }], map.blizzards_by_x[3]);
+    assert_eq!(vec![Blizzard { position: 0, direction: Direction::Fore }], map.blizzards_by_y[1]);
+}
+
+#[derive(Clone, PartialEq, Eq, Debug)]
+struct Frame {
+    x: usize,
+    y: usize,
+    minute: usize,
+}
+
+impl Frame {
+    fn new(x: usize, y: usize, minute: usize) -> Self {
+        Frame { x, y, minute }
+    }
+
+    fn distance_from(&self, x: usize, y: usize) -> usize {
+        let x_diff = if x >= self.x { x - self.x} else { self.x - x };
+        let y_diff = if y == usize::MAX {
+            if self.y == usize::MAX { 0 } else { self.y + 1 }
+        } else if y >= self.y {
+            y - self.y
+        } else {
+            if self.y == usize::MAX { y + 1 } else { self.y - y }
+        };
+        
+        x_diff + y_diff
+    }
+
+    fn try_left(&self, map: &Map) -> Option<Self> {
+        if self.x == map.start_x && self.y == map.start_y
+            || self.x == map.end_x && self.y == map.end_y
+            || self.x == 0 {
+            None
+        } else {
+            Some(Frame { x: self.x - 1, minute: self.minute + 1, ..*self })
+        }
+    }
+    
+    fn try_right(&self, map: &Map) -> Option<Self> {
+        if self.x == map.start_x && self.y == map.start_y
+            || self.x == map.end_x && self.y == map.end_y
+            || self.x == map.width - 1 {
+            None
+        } else  {
+            Some(Frame { x: self.x + 1, minute: self.minute + 1, ..*self })
+        }
+    }
+
+    fn try_up(&self, map: &Map) -> Option<Self> {
+        if self.y == 0 {
+            if self.x == map.start_x {
+                Some(Frame { y: map.start_y, minute: self.minute + 1, ..*self })
+            } else {
+                None
+            }
+        } else if self.y == map.start_y {
+            None
+        } else {
+            Some(Frame { y: self.y - 1, minute: self.minute + 1, ..*self })
+        }
+    }
+    
+    fn try_down(&self, map: &Map) -> Option<Self> {
+        if self.y == map.height - 1 {
+            if self.x == map.end_x {
+                Some(Frame { y: map.end_y, minute: self.minute + 1, ..*self })
+            } else {
+                None
+            }
+        } else if self.y == map.end_y {
+            None
+        } else if self.y == map.start_y {
+            Some(Frame { y: 0, minute: self.minute + 1, ..*self })
+        } else {
+            Some(Frame { y: self.y + 1, minute: self.minute + 1, ..*self })
+        }
+    }
+    
+    fn after(&self) -> Self {
+        Frame { minute: self.minute + 1, ..*self }
+    }
+}
+
+impl Hash for Frame {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.x.hash(state);
+        self.y.hash(state);
+        self.minute.hash(state);
+    }
+}
+
+#[test]
+fn test_frame_trys_with_sample() {
+    let sample = indoc::indoc!("
+        #.#####
+        #.....#
+        #>....#
+        #.....#
+        #...v.#
+        #.....#
+        #####.#");
+    let mut lines = crate::utils::str_to_iter(sample);
+    let map = Map::load(&mut lines);
+    let frame1 = Frame::new(map.start_x, map.start_y, 0);
+    assert_eq!(Frame { x: 0, y: usize::MAX, minute: 0 }, frame1);
+    assert_eq!(None, frame1.try_left(&map));
+    assert_eq!(Some(Frame { x: 0, y: 0, minute: 1 }), frame1.try_down(&map));
+    assert_eq!(None, frame1.try_right(&map));
+    assert_eq!(None, frame1.try_up(&map));
+    
+    let left_frame = Frame { x: 0, y: 2, minute: 0 };
+    assert_eq!(None, left_frame.try_left(&map));
+    assert_eq!(Some(Frame { x: 0, y: 3, minute: 1 }), left_frame.try_down(&map));
+    assert_eq!(Some(Frame { x: 1, y: 2, minute: 1 }), left_frame.try_right(&map));
+    assert_eq!(Some(Frame { x: 0, y: 1, minute: 1 }), left_frame.try_up(&map));
+    
+    let down_frame = Frame { x: 3, y: map.height - 1, minute: 0};
+    assert_eq!(Some(Frame { x: 2, y: 4, minute: 1 }), down_frame.try_left(&map));
+    assert_eq!(None, down_frame.try_down(&map));
+    assert_eq!(Some(Frame { x: 4, y: 4, minute: 1 }), down_frame.try_right(&map));
+    assert_eq!(Some(Frame { x: 3, y: 3, minute: 1 }), down_frame.try_up(&map));
+    
+    let above_end = Frame { x: 4, y: map.height - 1, minute: 0};
+    assert_eq!(Some(Frame { x: 4, y: 5, minute: 1 }), above_end.try_down(&map));
+}
+
+fn enqueue_if_out_of_blizzards(map: &Map, frame: Frame, queue: &mut HashSet<Frame>) {
+    if map.out_of_blizzards(&frame) {
+        queue.insert(frame);
+    }
+}
+
+fn accelerated_bfs(map: &Map, start_x: usize, start_y: usize, end_x: usize, end_y: usize, minute: usize) -> usize {
+    let mut queue = vec![Frame::new(start_x, start_y, minute)];
+    
+    loop {
+        let mut new_queue = HashSet::new();
+        
+        for frame in queue {
+            if frame.x == end_x && frame.y == end_y {
+                return frame.minute;
+            }
+
+            if let Some(next_frame) = frame.try_left(&map) {
+                enqueue_if_out_of_blizzards(&map, next_frame, &mut new_queue);
+            }
+
+            if let Some(next_frame) = frame.try_down(&map) {
+                enqueue_if_out_of_blizzards(&map, next_frame, &mut new_queue);
+            }
+
+            if let Some(next_frame) = frame.try_right(&map) {
+                enqueue_if_out_of_blizzards(&map, next_frame, &mut new_queue);
+            }
+
+            if let Some(next_frame) = frame.try_up(&map) {
+                enqueue_if_out_of_blizzards(&map, next_frame, &mut new_queue);
+            }
+
+            enqueue_if_out_of_blizzards(&map, frame.after(), &mut new_queue);
+        }
+        
+        if new_queue.is_empty() {
+            panic!("Path not found.")
+        }
+        
+        let mut new_queue = new_queue.into_iter().collect::<Vec<_>>();
+        new_queue.sort_by(|frame1, frame2| {
+            let distance1 = frame1.distance_from(end_x, end_y);
+            let distance2 = frame2.distance_from(end_x, end_y);
+            
+            distance1.cmp(&distance2)
+        });
+        
+        new_queue.truncate(300);
+        
+        queue = new_queue;
+    }
 }
 
 pub fn solve_a(lines: &mut dyn Iterator<Item=String>) -> usize {
-    let labyrinth = parse_labyrinth(lines);
-    let mut walker = Walker::new(&labyrinth.field[0]);
+    let map = Map::load(lines);
     
-    for &command in labyrinth.commands.iter() {
-        match command {
-            Command::Left => walker.left(),
-            Command::Right => walker.right(),
-            Command::Walk(length) => walker.walk(&labyrinth.field, length),
-        }
-    }
-    
-    1000 * walker.row + 4 * walker.column + walker.direction.facing()
+    accelerated_bfs(&map, map.start_x, map.start_y, map.end_x, map.end_y, 0)
 }
 
 #[test]
-fn solve_a_with_sample_data_returns_6032() {
+fn solve_a_with_sample_data_returns_18() {
     let sample = indoc::indoc!("
-                ...#
-                .#..
-                #...
-                ....
-        ...#.......#
-        ........#...
-        ..#....#....
-        ..........#.
-                ...#....
-                .....#..
-                .#......
-                ......#.
-        
-        10R5L5R10L4R5L5");
+        #.######
+        #>>.<^<#
+        #.<..<<#
+        #>v.><>#
+        #<^v^^>#
+        ######.#");
     let mut lines = crate::utils::str_to_iter(sample);
 
     let actual = solve_a(&mut lines);
 
-    assert_eq!(6032, actual);
-}
-
-const FRONT: usize = 0;
-const UP: usize = 1;
-const RIGHT: usize = 2;
-const BACK: usize = 3;
-const DOWN: usize = 4;
-const LEFT: usize = 5;
-
-struct Cube {
-    size: usize,
-    faces: [[[u8; 50]; 50]; 6],
-}
-
-impl Cube {
-    fn load_face(field: &Vec<Vec<u8>>, face: &mut [[u8; 50]; 50], size: usize, face_row: usize, face_column: usize) {
-        let face_top = face_row * size;
-        let face_left = face_column * size;
-        for row in 0..size {
-            for column in 0..size {
-                face[row][column] = field[face_top + row][face_left + column];
-            }
-        }
-    }
-
-    fn load(field: &Vec<Vec<u8>>) -> Self {
-        let size = if field.len() >= 50 { 50 } else { 4 };
-        let origin_column = field[0].iter().position(|&c| c != b' ').unwrap()/size;
-        let mut faces = [[[b' '; 50]; 50]; 6];
-        let next_faces = [
-            [FRONT, RIGHT, BACK, LEFT],
-            [DOWN, RIGHT, UP, LEFT],
-            [BACK, RIGHT, FRONT, LEFT],
-            [UP, RIGHT, DOWN, LEFT],
-        ];
-
-        for face_row in 0..field.len()/size {
-            for face_column in 0..field[face_row * size].len()/size {
-                if field[face_row * size][face_column * size] == b' ' {
-                    continue;
-                }
-
-                let index = if face_column < origin_column { 4 + face_column - origin_column }
-                                  else { face_column - origin_column };
-
-                let next_face = next_faces[face_row][index];
-                println!("{}", next_face);
-                Cube::load_face(field, &mut faces[next_face], size, face_row, face_column);
-            }
-        };
-
-        Cube { size, faces }
-    }
+    assert_eq!(18, actual);
 }
 
 pub fn solve_b(lines: &mut dyn Iterator<Item=String>) -> usize {
-    let labyrinth = parse_labyrinth(lines);
-    let cube = Cube::load(&labyrinth.field);
+    let map = Map::load(lines);
 
-    5031
+    let minute1 = accelerated_bfs(&map, map.start_x, map.start_y, map.end_x, map.end_y, 0);
+    let minute2 = accelerated_bfs(&map, map.end_x, map.end_y, map.start_x, map.start_y, minute1);
+    
+    accelerated_bfs(&map, map.start_x, map.start_y, map.end_x, map.end_y, minute2)
 }
 
 #[test]
-fn solve_b_with_sample_data_returns_5031() {
+fn solve_b_with_sample_data_returns_54() {
     let sample = indoc::indoc!("
-                ...#
-                .#..
-                #...
-                ....
-        ...#.......#
-        ........#...
-        ..#....#....
-        ..........#.
-                ...#....
-                .....#..
-                .#......
-                ......#.
-        
-        10R5L5R10L4R5L5");
+        #.######
+        #>>.<^<#
+        #.<..<<#
+        #>v.><>#
+        #<^v^^>#
+        ######.#");
     let mut lines = crate::utils::str_to_iter(sample);
 
     let actual = solve_b(&mut lines);
 
-    assert_eq!(5031, actual);
+    assert_eq!(54, actual);
 }

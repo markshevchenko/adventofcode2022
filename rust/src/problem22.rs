@@ -253,6 +253,7 @@ const BACK: usize = 3;
 const DOWN: usize = 4;
 const LEFT: usize = 5;
 
+#[allow(dead_code)]
 struct Cube {
     size: usize,
     faces: [[[u8; 50]; 50]; 6],
@@ -290,7 +291,7 @@ impl Cube {
                                   else { face_column - origin_column };
 
                 let next_face = next_faces[face_row][index];
-                println!("{}", next_face);
+                // println!("{}", next_face);
                 Cube::load_face(field, &mut faces[next_face], size, face_row, face_column);
             }
         };
@@ -301,7 +302,7 @@ impl Cube {
 
 pub fn solve_b(lines: &mut dyn Iterator<Item=String>) -> usize {
     let labyrinth = parse_labyrinth(lines);
-    let cube = Cube::load(&labyrinth.field);
+    let _cube = Cube::load(&labyrinth.field);
 
     5031
 }
