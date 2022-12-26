@@ -3,6 +3,7 @@
 open System.Collections.Generic
 open System.Diagnostics
 open System.Text.RegularExpressions
+open Microsoft.FSharp.Collections
 
 type Id = Id of int
 type Ore = Ore of int
@@ -30,21 +31,33 @@ let parse_blueprint (line: string) =
       geode_robot_cost = (``match``.Groups[6].Value |> int |> Ore, ``match``.Groups[7].Value |> int |> Obsidian) }
 
 
-type Frame = {
-    ore_robot: int
-    ore: Ore
-    clay_robot: int
-    clay: Clay
-    obsidian_robot: int
-    obsidian: Obsidian
-    geode_robot: int
-    geode: Geode
-    minute: int
-}
+type Frame =
+    { ore_robot: int
+      ore: Ore
+      clay_robot: int
+      clay: Clay
+      obsidian_robot: int
+      obsidian: Obsidian
+      geode_robot: int
+      geode: Geode
+      previous: Frame option }
+    
+    
+let rec print_frame minute = function
+    | Some frame ->
+        let (Ore ore) = frame.ore
+        let (Clay clay) = frame.clay
+        let (Obsidian obsidian) = frame.obsidian
+        let (Geode geode) = frame.geode
+        printfn $"Minute {minute}: {ore}, {clay}, {obsidian}, {geode}"
+        printfn $"Robots - O {frame.ore_robot}, C {frame.clay_robot}, O {frame.obsidian_robot}, G {frame.geode_robot}"
+        
+        print_frame (minute - 1) frame.previous
+    | None -> ()
 
 
 let init_frame =
-    { ore_robot = 0
+    { ore_robot = 1
       ore = Ore 0
       clay_robot = 0
       clay = Clay 0
@@ -52,7 +65,7 @@ let init_frame =
       obsidian = Obsidian 0
       geode_robot = 0
       geode = Geode 0
-      minute = 0 }
+      previous = None }
     
 
 let growth (previous: Frame) (next: Frame) =
@@ -66,7 +79,7 @@ let growth (previous: Frame) (next: Frame) =
         clay = Clay (clay + previous.clay_robot)
         obsidian = Obsidian (obsidian + previous.obsidian_robot)
         geode = Geode (geode + previous.geode_robot)
-        minute = previous.minute + 1 }
+        previous = Some previous }
 
 
 let or_collect_ore_robot (blueprint: Blueprint) (previous: Frame) (next_frames: Frame list) =
@@ -130,33 +143,34 @@ let make_next_frames (blueprint: Blueprint) (previous: Frame) =
                
                
 let accelerated_bfs (blueprint: Blueprint) =
-    let rec loop (queue: Queue<Frame>) =
-        let mutable next_frames = set []
-        for frame in queue do
-            for next_frame in make_next_frames blueprint frame do
-                next_frames.Add (next_frame) |> ignore
+    let rec loop (queue: Queue<Frame>) (minute: int) =
+        let next_frames =
+            seq { for frame in queue do
+                      yield! make_next_frames blueprint frame |> Seq.ofList }
+            |> Seq.sortByDescending (fun it -> (it.geode,
+                                                it.geode_robot,
+                                                it.obsidian_robot,
+                                                it.clay_robot,
+                                                it.ore_robot))
+            |> Seq.truncate 100000
+            |> Seq.toArray
+            
+        if next_frames.Length = 0 then failwith "Path not found."
                 
-        if next_frames.Count = 0 then failwith "Path not found."
-                
-        let next_frames = next_frames
-                       |> Set.toSeq
-                       |> Seq.sortByDescending (fun it -> it.geode)
-                       |> Seq.take 10000
-                       |> Seq.toArray
-                       
-        if next_frames[0].minute = 24
+        if minute = 23
         then let (Geode geode) = next_frames[0].geode
+             // print_frame 24 (Some (next_frames[0]))
              let (Id id) = blueprint.id
              id * geode
-        else loop (Queue (next_frames |> Array.toSeq))
+        else loop (Queue (next_frames |> Array.toSeq)) (minute + 1)
     
-    loop (Queue (seq { init_frame }))
+    loop (Queue (seq { init_frame })) 0
 
 
 let solve_a (lines: string seq) =
-    lines |> Seq.map parse_blueprint
-          |> Seq.map accelerated_bfs
-          |> Seq.sum
+    let blueprints = lines |> Seq.map parse_blueprint |> Seq.toArray
+    let results = blueprints |> Seq.map accelerated_bfs |> Seq.toArray
+    results |> Seq.sum
     
 
 let solve_b (lines: string seq) =
