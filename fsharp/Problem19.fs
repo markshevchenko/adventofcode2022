@@ -1,5 +1,6 @@
 ﻿module Problem19
 
+open System
 open System.Collections.Generic
 open System.Diagnostics
 open System.Text.RegularExpressions
@@ -39,22 +40,8 @@ type Frame =
       obsidian_robot: int
       obsidian: Obsidian
       geode_robot: int
-      geode: Geode
-      previous: Frame option }
+      geode: Geode }
     
-    
-let rec print_frame minute = function
-    | Some frame ->
-        let (Ore ore) = frame.ore
-        let (Clay clay) = frame.clay
-        let (Obsidian obsidian) = frame.obsidian
-        let (Geode geode) = frame.geode
-        printfn $"Minute {minute}: {ore}, {clay}, {obsidian}, {geode}"
-        printfn $"Robots - O {frame.ore_robot}, C {frame.clay_robot}, O {frame.obsidian_robot}, G {frame.geode_robot}"
-        
-        print_frame (minute - 1) frame.previous
-    | None -> ()
-
 
 let init_frame =
     { ore_robot = 1
@@ -64,9 +51,8 @@ let init_frame =
       obsidian_robot = 0
       obsidian = Obsidian 0
       geode_robot = 0
-      geode = Geode 0
-      previous = None }
-    
+      geode = Geode 0 }
+
 
 let growth (previous: Frame) (next: Frame) =
     let (Ore ore) = next.ore
@@ -78,8 +64,7 @@ let growth (previous: Frame) (next: Frame) =
         ore = Ore (ore + previous.ore_robot)
         clay = Clay (clay + previous.clay_robot)
         obsidian = Obsidian (obsidian + previous.obsidian_robot)
-        geode = Geode (geode + previous.geode_robot)
-        previous = Some previous }
+        geode = Geode (geode + previous.geode_robot) }
 
 
 let or_collect_ore_robot (blueprint: Blueprint) (previous: Frame) (next_frames: Frame list) =
@@ -104,7 +89,7 @@ let or_collect_clay_robot (blueprint: Blueprint) (previous: Frame) (next_frames:
                         clay_robot = previous.clay_robot + 1 }
          next::next_frames
     else next_frames
-    
+
 
 let or_collect_obsidian_robot (blueprint: Blueprint) (previous: Frame) (next_frames: Frame list) =
     let (Ore ore_cost, Clay clay_cost) = blueprint.obsidian_robot_cost
@@ -118,7 +103,7 @@ let or_collect_obsidian_robot (blueprint: Blueprint) (previous: Frame) (next_fra
                         obsidian_robot = previous.obsidian_robot + 1 }
          next::next_frames
     else next_frames
-    
+
 
 let or_collect_geode_robot (blueprint: Blueprint) (previous: Frame) (next_frames: Frame list) =
     let (Ore ore_cost, Obsidian obsidian_cost) = blueprint.geode_robot_cost
@@ -132,21 +117,56 @@ let or_collect_geode_robot (blueprint: Blueprint) (previous: Frame) (next_frames
                         geode_robot = previous.geode_robot + 1 }
          next::next_frames
     else next_frames
-    
-    
-let make_next_frames (blueprint: Blueprint) (previous: Frame) =
+
+
+let neighbors (blueprint: Blueprint) (previous: Frame) =
     [previous] |> or_collect_ore_robot blueprint previous
                |> or_collect_clay_robot blueprint previous
                |> or_collect_obsidian_robot blueprint previous
                |> or_collect_geode_robot blueprint previous
                |> List.map (growth previous)
-               
-               
+
+type FrameComparer () =
+    interface IComparer<Frame> with
+        member _.Compare (a: Frame, b: Frame) =
+            let b_tuple = (b.geode, b.geode_robot, b.obsidian_robot, b.clay_robot, b.ore_robot)
+            let a_tuple = (a.geode, a.geode_robot, a.obsidian_robot, a.clay_robot, a.ore_robot)
+            
+            (b_tuple :> IComparable).CompareTo a_tuple
+        
+let a_star (blueprint: Blueprint) =
+    let comparer = FrameComparer ()
+    let mutable costs = Dictionary ()
+    let mutable priority_queue = PriorityQueue comparer
+    
+    costs.Add (init_frame, 0)
+    priority_queue.Enqueue ((0, init_frame), init_frame)
+    
+    let rec loop () =
+        if priority_queue.Count = 0 then failwith "Path not found."
+        let (minute, current_frame) = priority_queue.Dequeue ()
+        
+        if minute = 24 then
+            let (Geode geode) = current_frame.geode 
+            geode
+        else if minute > costs[current_frame]
+            loop ()
+        else
+            for next_frame in neighbors blueprint current_frame do
+                if not costs.ContainsKey next_frame || (minute + 1) < costs[next_frame]
+                then
+                    costs.Add (next_frame, minute + 1)
+                    priority_queue.Enqueue ((minute + 1, next_frame), next_frame)
+                    
+            loop ()
+    
+    loop ()        
+    
 let accelerated_bfs (blueprint: Blueprint) =
     let rec loop (queue: Queue<Frame>) (minute: int) =
         let next_frames =
             seq { for frame in queue do
-                      yield! make_next_frames blueprint frame |> Seq.ofList }
+                      yield! neighbors blueprint frame |> Seq.ofList }
             |> Seq.sortByDescending (fun it -> (it.geode,
                                                 it.geode_robot,
                                                 it.obsidian_robot,
