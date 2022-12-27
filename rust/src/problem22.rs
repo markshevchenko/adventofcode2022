@@ -246,12 +246,29 @@ fn solve_a_with_sample_data_returns_6032() {
     assert_eq!(6032, actual);
 }
 
-const FRONT: usize = 0;
-const UP: usize = 1;
-const RIGHT: usize = 2;
-const BACK: usize = 3;
-const DOWN: usize = 4;
-const LEFT: usize = 5;
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+enum Face {
+    Front = 0,
+    Up = 1,
+    Right = 2,
+    Back = 3,
+    Down = 4,
+    Left = 5,
+}
+
+enum Rotate {
+    None,
+    Clock,
+    Contra,
+    Flip,
+}
+
+const CUBE: &'static [[Option<(Face, Rotate)>; 4]; 4] = &[
+    [None,                              None,                               Some ((Face::Front, Rotate::None)), Some ((Face::Right, Rotate::None))],
+    [Some ((Face::Down, Rotate::Flip)), Some ((Face::Left, Rotate::Clock)), Some ((Face::Down, Rotate::None)),  None],
+    [None,                              Some ((Face::Right, Rotate::Flip)), Some ((Face::Back, Rotate::None)),  Some ((Face::Left, Rotate::Flip))],
+    [None,                              Some ((Face::Up, Rotate::Contra)),  None,                               None],
+];
 
 #[allow(dead_code)]
 struct Cube {
@@ -274,12 +291,6 @@ impl Cube {
         let size = if field.len() >= 50 { 50 } else { 4 };
         let origin_column = field[0].iter().position(|&c| c != b' ').unwrap()/size;
         let mut faces = [[[b' '; 50]; 50]; 6];
-        let next_faces = [
-            [FRONT, RIGHT, BACK, LEFT],
-            [DOWN, RIGHT, UP, LEFT],
-            [BACK, RIGHT, FRONT, LEFT],
-            [UP, RIGHT, DOWN, LEFT],
-        ];
 
         for face_row in 0..field.len()/size {
             for face_column in 0..field[face_row * size].len()/size {
@@ -287,12 +298,10 @@ impl Cube {
                     continue;
                 }
 
-                let index = if face_column < origin_column { 4 + face_column - origin_column }
-                                  else { face_column - origin_column };
-
-                let next_face = next_faces[face_row][index];
-                // println!("{}", next_face);
-                Cube::load_face(field, &mut faces[next_face], size, face_row, face_column);
+                let column = 2 + face_column - origin_column;
+                if let Some((face, rotate)) = &CUBE[face_row][column] {
+                    Cube::load_face(field, &mut faces[*face as usize], size, face_row, face_column);
+                }
             }
         };
 
