@@ -40,7 +40,8 @@ type Frame =
       obsidian_robot: int
       obsidian: Obsidian
       geode_robot: int
-      geode: Geode }
+      geode: Geode
+      history: Frame list }
     
 
 let init_frame =
@@ -51,7 +52,8 @@ let init_frame =
       obsidian_robot = 0
       obsidian = Obsidian 0
       geode_robot = 0
-      geode = Geode 0 }
+      geode = Geode 0
+      history = [] }
 
 
 let growth (previous: Frame) (next: Frame) =
@@ -64,7 +66,8 @@ let growth (previous: Frame) (next: Frame) =
         ore = Ore (ore + previous.ore_robot)
         clay = Clay (clay + previous.clay_robot)
         obsidian = Obsidian (obsidian + previous.obsidian_robot)
-        geode = Geode (geode + previous.geode_robot) }
+        geode = Geode (geode + previous.geode_robot)
+        history = previous::previous.history }
 
 
 let or_collect_ore_robot (blueprint: Blueprint) (previous: Frame) (next_frames: Frame list) =
@@ -126,14 +129,29 @@ let neighbors (blueprint: Blueprint) (previous: Frame) =
                |> or_collect_geode_robot blueprint previous
                |> List.map (growth previous)
 
+
 type FrameComparer () =
     interface IComparer<Frame> with
         member _.Compare (a: Frame, b: Frame) =
-            let b_tuple = (b.geode, b.geode_robot, b.obsidian_robot, b.clay_robot, b.ore_robot)
-            let a_tuple = (a.geode, a.geode_robot, a.obsidian_robot, a.clay_robot, a.ore_robot)
+            if a.geode_robot > b.geode_robot then -1
+            else if a.geode_robot < b.geode_robot then 1
+            else if 
+            
+            let b_tuple = (b.geode_robot, b.obsidian_robot, b.clay_robot, b.ore_robot)
+            let a_tuple = (a.geode_robot, a.obsidian_robot, a.clay_robot, a.ore_robot)
             
             (b_tuple :> IComparable).CompareTo a_tuple
-        
+
+
+let print_frame (frame: Frame) =
+    frame::frame.history |> List.rev
+                         |> List.iteri (fun i it -> printfn $"== Minute {i} =="
+                                                    printfn $"{it.ore_robot} ore-collecting robots; you now have {it.ore}."
+                                                    if it.clay_robot > 0 then printfn $"{it.clay_robot} clay-collecting robots; you now have {it.clay}."
+                                                    if it.obsidian_robot > 0 then printfn $"{it.obsidian_robot} obsidian-collecting robots; you now have {it.obsidian}."
+                                                    if it.geode_robot > 0 then printfn $"{it.geode_robot} geode-collecting robots; you now have {it.geode}.")
+
+
 let a_star (blueprint: Blueprint) =
     let comparer = FrameComparer ()
     let mutable costs = Dictionary ()
@@ -147,21 +165,25 @@ let a_star (blueprint: Blueprint) =
         let (minute, current_frame) = priority_queue.Dequeue ()
         
         if minute = 24 then
-            let (Geode geode) = current_frame.geode 
-            geode
-        else if minute > costs[current_frame]
+            let (Id id) = blueprint.id
+            let (Geode geode) = current_frame.geode
+            print_frame current_frame
+            id * geode
+        else if minute > costs[current_frame] then
             loop ()
         else
-            for next_frame in neighbors blueprint current_frame do
-                if not costs.ContainsKey next_frame || (minute + 1) < costs[next_frame]
+            let next_frames = neighbors blueprint current_frame |> List.toArray
+            for next_frame in next_frames do
+                if not (costs.ContainsKey next_frame) || (minute + 1) < costs[next_frame]
                 then
                     costs.Add (next_frame, minute + 1)
                     priority_queue.Enqueue ((minute + 1, next_frame), next_frame)
                     
             loop ()
     
-    loop ()        
-    
+    loop ()
+
+
 let accelerated_bfs (blueprint: Blueprint) =
     let rec loop (queue: Queue<Frame>) (minute: int) =
         let next_frames =
@@ -189,7 +211,7 @@ let accelerated_bfs (blueprint: Blueprint) =
 
 let solve_a (lines: string seq) =
     let blueprints = lines |> Seq.map parse_blueprint |> Seq.toArray
-    let results = blueprints |> Seq.map accelerated_bfs |> Seq.toArray
+    let results = blueprints |> Seq.map a_star |> Seq.toArray
     results |> Seq.sum
     
 
