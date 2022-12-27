@@ -14,8 +14,8 @@ let ``solve_a with sample returns 33`` () =
     Assert.Equal (33, actual)
     
     
-[<Fact>]
-let ``solve_b with sample returns 0`` () =
+[<Fact(Skip = "Too long")>]
+let ``solve_b with sample returns 56 * 62`` () =
     let actual = solve_b sample 
                   
-    Assert.Equal (0, actual)
+    Assert.Equal (56 * 62, actual)
