@@ -249,13 +249,45 @@ fn solve_a_with_sample_data_returns_6032() {
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 enum Face {
     Front = 0,
-    Up = 1,
+    Up    = 1,
     Right = 2,
-    Back = 3,
-    Down = 4,
-    Left = 5,
+    Back  = 3,
+    Down  = 4,
+    Left  = 5,
 }
 
+impl Face {
+    const COUNT: usize = 6;
+    
+    fn go_side(&self, direction: Direction) -> Self {
+        Face::Front
+    }
+}
+
+#[test]
+fn test_face_go_side() {
+    assert_eq!(Face::Up, Face::Front::go_side(Direction::Up));
+    assert_eq!(Face::Right, Face::Front::go_side(Direction::Right));
+    assert_eq!(Face::Down, Face::Front::go_side(Direction::Down));
+    assert_eq!(Face::Left, Face::Front::go_side(Direction::Left));
+
+    assert_eq!(Face::Up, Face::Right::go_side(Direction::Up));
+    assert_eq!(Face::Back, Face::Right::go_side(Direction::Right));
+    assert_eq!(Face::Down, Face::Right::go_side(Direction::Down));
+    assert_eq!(Face::Front, Face::Right::go_side(Direction::Left));
+
+    assert_eq!(Face::Up, Face::Back::go_side(Direction::Up));
+    assert_eq!(Face::Left, Face::Back::go_side(Direction::Right));
+    assert_eq!(Face::Down, Face::Back::go_side(Direction::Down));
+    assert_eq!(Face::Left, Face::Back::go_side(Direction::Left));
+
+    assert_eq!(Face::Up, Face::Left::go_side(Direction::Up));
+    assert_eq!(Face::Back, Face::Left::go_side(Direction::Right));
+    assert_eq!(Face::Down, Face::Left::go_side(Direction::Down));
+    assert_eq!(Face::Front, Face::Left::go_side(Direction::Left));
+}
+
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
 enum Rotate {
     None,
     Clock,
@@ -270,48 +302,159 @@ const CUBE: &'static [[Option<(Face, Rotate)>; 4]; 4] = &[
     [None,                              Some ((Face::Up, Rotate::Contra)),  None,                               None],
 ];
 
+const CUBE_ORIGIN_COLUMN: usize = 2;
+
 #[allow(dead_code)]
 struct Cube {
     size: usize,
-    faces: [[[u8; 50]; 50]; 6],
+    field: Vec<Vec<u8>>,
+    faces: [(usize, usize, Rotate); 6],
 }
 
 impl Cube {
-    fn load_face(field: &Vec<Vec<u8>>, face: &mut [[u8; 50]; 50], size: usize, face_row: usize, face_column: usize) {
-        let face_top = face_row * size;
-        let face_left = face_column * size;
-        for row in 0..size {
-            for column in 0..size {
-                face[row][column] = field[face_top + row][face_left + column];
-            }
-        }
-    }
-
-    fn load(field: &Vec<Vec<u8>>) -> Self {
+    fn load(field: Vec<Vec<u8>>) -> Self {
         let size = if field.len() >= 50 { 50 } else { 4 };
-        let origin_column = field[0].iter().position(|&c| c != b' ').unwrap()/size;
-        let mut faces = [[[b' '; 50]; 50]; 6];
+        let origin_column = field[0].iter().position(|&c| c != b' ').unwrap() / size;
+        let mut faces = [(0, 0, Rotate::None); Face::COUNT];
 
-        for face_row in 0..field.len()/size {
-            for face_column in 0..field[face_row * size].len()/size {
+        for face_row in 0..field.len() / size {
+            for face_column in 0..field[face_row * size].len() / size {
                 if field[face_row * size][face_column * size] == b' ' {
                     continue;
                 }
 
-                let column = 2 + face_column - origin_column;
-                if let Some((face, rotate)) = &CUBE[face_row][column] {
-                    Cube::load_face(field, &mut faces[*face as usize], size, face_row, face_column);
+                let adjusted_column = CUBE_ORIGIN_COLUMN + face_column - origin_column;
+                if let &Some((face, rotate)) = &CUBE[face_row][adjusted_column] {
+                    let face_top = face_row * size;
+                    let face_left = face_column * size;
+                    faces[face as usize] = (face_top, face_left, rotate);
                 }
             }
-        };
+        }
 
-        Cube { size, faces }
+        Cube { size, field, faces }
     }
 }
 
+#[derive(Copy, Clone, Eq, PartialEq, Debug)]
+struct CubeWalker {
+    row: usize,
+    column: usize,
+    direction: Direction
+}
+
+impl CubeWalker {
+    fn new(top_row: &[u8]) -> Self {
+        let column = top_row.iter().position(|&c| c != b' ').unwrap() + 1;
+
+        CubeWalker {
+            row: 1,
+            column,
+            direction: Direction::Right,
+        }
+    }
+
+    fn left(&mut self) {
+        self.direction = match self.direction {
+            Direction::Right => Direction::Up,
+            Direction::Up => Direction::Left,
+            Direction::Left => Direction::Down,
+            Direction::Down => Direction::Right,
+        }
+    }
+
+    fn right(&mut self) {
+        self.direction = match self.direction {
+            Direction::Right => Direction::Down,
+            Direction::Down => Direction::Left,
+            Direction::Left => Direction::Up,
+            Direction::Up => Direction::Right,
+        }
+    }
+
+    fn next(&self, field: &Vec<Vec<u8>>) -> (usize, usize) {
+        let mut next_row = self.row;
+        let mut next_column = self.column;
+
+        match self.direction {
+            Direction::Right => {
+                if next_column == field[self.row - 1].len() {
+                    while next_column > 1 && field[self.row - 1][next_column - 2] != b' ' {
+                        next_column -= 1;
+                    }
+                } else {
+                    next_column += 1;
+                }
+            },
+            Direction::Down => {
+                if next_row == field.len() || self.column > field[next_row].len()
+                    || field[next_row][self.column - 1] == b' ' {
+                    while next_row > 1 && field[next_row - 2].len() >= self.column
+                        && field[next_row - 2][self.column - 1] != b' ' {
+                        next_row -= 1;
+                    }
+                } else {
+                    next_row += 1;
+                }
+            },
+            Direction::Left => {
+                if next_column == 1 {
+                    while next_column < field[self.row - 1].len() && field[self.row - 1][next_column] != b' ' {
+                        next_column += 1;
+                    }
+                } else {
+                    next_column -= 1;
+                }
+            },
+            Direction::Up => {
+                if next_row == 1 || self.column > field[next_row - 2].len()
+                    || field[next_row - 2][self.column - 1] == b' ' {
+                    while next_row < field.len() && field[next_row].len() >= self.column
+                        && field[next_row][self.column - 1] != b' ' {
+                        next_row += 1;
+                    }
+                } else {
+                    next_row -= 1;
+                }
+            },
+        };
+
+        (next_row, next_column)
+    }
+
+    fn walk(&mut self, field: &Vec<Vec<u8>>, mut length: u32) {
+        loop {
+            if length == 0 {
+                break;
+            }
+
+            let (next_row, next_column) = self.next(field);
+            if field[next_row - 1][next_column - 1] == b'#' {
+                break;
+            }
+
+            self.row = next_row;
+            self.column = next_column;
+            length -= 1;
+        }
+    }
+}
+
+
 pub fn solve_b(lines: &mut dyn Iterator<Item=String>) -> usize {
     let labyrinth = parse_labyrinth(lines);
-    let _cube = Cube::load(&labyrinth.field);
+    let cube = Cube::load(labyrinth.field);
+    // let mut walker = Walker::new(&labyrinth.field[0]);
+
+    for &command in labyrinth.commands.iter() {
+        // match command {
+        //     Command::Left => walker.left(),
+        //     Command::Right => walker.right(),
+        //     Command::Walk(length) => walker.walk(&labyrinth.field, length),
+        // }
+    }
+
+    // 1000 * walker.row + 4 * walker.column + walker.direction.facing()
 
     5031
 }
